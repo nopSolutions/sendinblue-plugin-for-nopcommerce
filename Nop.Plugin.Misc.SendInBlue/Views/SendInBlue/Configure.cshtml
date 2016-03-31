@@ -1,0 +1,641 @@
+﻿@{
+    Layout = "";
+}
+@model Nop.Plugin.Misc.SendInBlue.Models.SendInBlueModel
+@using Nop.Web.Framework;
+
+@Html.Action("StoreScopeConfiguration", "Setting", new { area = "Admin" })
+
+@using (Html.BeginForm())
+{
+    @Html.AntiForgeryToken()
+    <script>
+        $(document).ready(function() {
+            $("#sendinblue-configure").kendoTabStrip({
+                animation: {
+                    open: {
+                        effects: "fadeIn"
+                    }
+                },
+                select: tabstrip_on_tab_select
+            });
+        });
+    </script>
+    <div id="sendinblue-configure">
+        <ul>
+            <li @Html.RenderSelectedTabIndex(0, GetSelectedTabIndex())>
+                @T("Plugins.Misc.SendInBlue.General")
+            </li>
+            @if (!string.IsNullOrEmpty(Model.ApiKey))
+            {
+                <li @Html.RenderSelectedTabIndex(1, GetSelectedTabIndex())>
+                    @T("Plugins.Misc.SendInBlue.Synchronization")
+                </li>
+                <li @Html.RenderSelectedTabIndex(2, GetSelectedTabIndex())>
+                    @T("Plugins.Misc.SendInBlue.Transactional")
+                </li>
+                <li @Html.RenderSelectedTabIndex(3, GetSelectedTabIndex())>
+                    @T("Plugins.Misc.SendInBlue.SMS")
+                </li>
+            }
+        </ul>
+        <div>
+            @TabGeneral()
+        </div>
+        @if (!string.IsNullOrEmpty(Model.ApiKey))
+        {
+            <div>
+                @TabSynchronization()
+            </div>
+            <div>
+                @TabTransactional()
+            </div>
+            <div>
+                @TabSMS()
+            </div>
+        }
+    </div>
+}
+
+@helper TabGeneral()
+{
+    <table class="adminContent">
+        <tr>
+            <td class="adminTitle">
+                @Html.NopLabelFor(model => model.ApiKey):
+            </td>
+            <td class="adminData">
+                @Html.EditorFor(model => model.ApiKey)
+                @Html.ValidationMessageFor(model => model.ApiKey)
+            </td>
+        </tr>
+        <tr>
+            <td colspan="2">
+                <input type="submit" name="save" class="k-button" value="@T("Admin.Common.Save")" />
+            </td>
+        </tr>
+        @if (!string.IsNullOrEmpty(Model.AccountInfo))
+        {
+            <tr class="adminSeparator">
+                <td colspan="2">
+                    <p>
+                        <strong>@T("Plugins.Misc.SendInBlue.AccountInfo")</strong>
+                    </p>
+                </td>
+            </tr>
+            <tr>
+                <td colspan="2">
+                    @Html.Raw(Model.AccountInfo)
+                </td>
+            </tr>
+
+            <tr class="adminSeparator">
+                <td colspan="2">
+                    <p>
+                        <strong>@T("Plugins.Misc.SendInBlue.Statistics")</strong>
+                    </p>
+
+                </td>
+            </tr>
+            <tr>
+                <td colspan="2">
+                    <img src="@Url.Action("Statistics", "SendInBlue")"/>
+                </td>
+            </tr>
+        }
+    </table>
+}
+
+@helper TabSynchronization()
+{
+    <script type="text/javascript">
+        $(document).ready(function () {
+            $("#progressBar").kendoProgressBar({
+                value: false,
+                type: "value"
+            }).data("kendoProgressBar");
+            $("#progressBar").hide();
+            $("#@Html.FieldIdFor(model => model.ListId)").change(changeListId);
+            $("#@Html.FieldIdFor(model => model.AutoSync)").click(toggleAutoSync);
+
+            toggleAutoSync();
+            changeListId();
+
+            if (@((TempData["synchronizationStart"] != null && (bool)TempData["synchronizationStart"]).ToString().ToLower())) {
+                $("#progressBar").show();
+                refresh();
+            }
+        });
+
+        function toggleAutoSync() {
+            if ($('#@Html.FieldIdFor(model => model.AutoSync)').is(':checked')) {
+                $('#pnlAutoSyncEachMinutes').show();
+            }
+            else {
+                $('#pnlAutoSyncEachMinutes').hide();
+            }
+        };
+
+        function changeListId() {
+            if ($("#@Html.FieldIdFor(model => model.ListId)").val() == "0") {
+                $('#pnlNewListName').show();
+            }
+            else {
+                $('#pnlNewListName').hide();
+            }
+        };
+
+        function refresh(){
+            setTimeout(function(){
+                $.get('@(Url.Action("GetSynchronizationInfo", "SendInBlue"))', function(data) {
+                    if (!data) {
+                        refresh();
+                    }
+                    else {
+                        $('#synchronizationInfo').html(data);
+                        $("#progressBar").hide();
+                    }
+                });
+            }, 3000);
+        };
+
+    </script>
+
+    <table class="adminContent">
+        <tr>
+            <td class="adminTitle">
+                @Html.OverrideStoreCheckboxFor(model => model.ListId_OverrideForStore, model => model.ListId, Model.ActiveStoreScopeConfiguration)
+                @Html.NopLabelFor(model => model.ListId):
+            </td>
+            <td class="adminData">
+                @Html.DropDownListFor(model => model.ListId, Model.AvailableLists)
+                @Html.ValidationMessageFor(model => model.ListId)
+            </td>
+        </tr>
+        <tr id="pnlNewListName">
+            <td class="adminTitle">
+                @Html.NopLabelFor(model => model.NewListName):
+            </td>
+            <td class="adminData">
+                @Html.EditorFor(model => model.NewListName)
+                @Html.ValidationMessageFor(model => model.NewListName)
+            </td>
+        </tr>
+        <tr>
+            <td class="adminTitle">
+                @Html.NopLabelFor(m => m.AutoSync):
+            </td>
+            <td class="adminData">
+                @Html.EditorFor(m => m.AutoSync)
+                @Html.ValidationMessageFor(m => m.AutoSync)
+            </td>
+        </tr>
+        <tr id="pnlAutoSyncEachMinutes">
+            <td class="adminTitle">
+                @Html.NopLabelFor(model => model.AutoSyncEachMinutes):
+            </td>
+            <td class="adminData">
+                @Html.EditorFor(model => model.AutoSyncEachMinutes)
+                @Html.ValidationMessageFor(model => model.AutoSyncEachMinutes)
+            </td>
+        </tr>
+        <tr>
+            <td colspan="2">
+                <input type="submit" name="saveSync" class="k-button" value="@T("Admin.Common.Save")" />
+            </td>
+        </tr>
+        <tr>
+            <td colspan="2">
+                <p>
+                    @T("Plugins.Misc.SendInBlue.ManualSync")
+                </p>
+            </td>
+        </tr>
+        <tr>
+            <td colspan="2">
+                <input type="submit" name="sync" class="k-button" value="@T("Plugins.Misc.SendInBlue.ManualSync")" />
+            </td>
+        </tr>
+        <tr>
+            <td colspan="2">
+                <div id="synchronizationInfo">
+                    @Html.Raw(Model.SynchronizationInfo)
+                </div>
+            </td>
+        </tr>
+        <tr>
+            <td colspan="2">
+                <div id="progressBar"/>
+            </td>
+        </tr>
+    </table>
+}
+
+@helper TabTransactional()
+{
+    <table class="adminContent">
+        <tr>
+            <td class="adminTitle">
+                @Html.OverrideStoreCheckboxFor(model => model.UseSendInBlueSMTP_OverrideForStore, model => model.UseSendInBlueSMTP, Model.ActiveStoreScopeConfiguration)
+                @Html.NopLabelFor(model => model.UseSendInBlueSMTP):
+            </td>
+            <td class="adminData">
+                @Html.EditorFor(model => model.UseSendInBlueSMTP)
+                @Html.ValidationMessageFor(model => model.UseSendInBlueSMTP)
+            </td>
+        </tr>
+        <tr>
+            <td class="adminTitle">
+                @Html.OverrideStoreCheckboxFor(model => model.SMTPSenderId_OverrideForStore, model => model.SMTPSenderId, Model.ActiveStoreScopeConfiguration)
+                @Html.NopLabelFor(model => model.SMTPSenderId):
+            </td>
+            <td class="adminData">
+                @Html.DropDownListFor(model => model.SMTPSenderId, Model.AvailableSenders)
+                @Html.ValidationMessageFor(model => model.SMTPSenderId)
+            </td>
+        </tr>
+        <tr>
+            <td colspan="2">
+                <input type="submit" name="saveSMTP" class="k-button" value="@T("Admin.Common.Save")" />
+            </td>
+        </tr>
+        <tr>
+            <td colspan="2">
+                @Html.Raw(Model.SMTPStatus)
+            </td>
+        </tr>
+    </table>
+
+    if(Model.UseSendInBlueSMTP)
+    { 
+        <table class="adminContent">
+            <tr>
+                <td>
+                    <div id="messages-grid"></div>
+
+                    <script>
+                    $(document).ready(function () {
+                        $("#messages-grid").kendoGrid({
+                            dataSource: {
+                                type: "json",
+                                transport: {
+                                    read: {
+                                        url: "@Html.Raw(Url.Action("MessageList", "SendInBlue"))",
+                                        type: "POST",
+                                        dataType: "json"
+                                    },
+                                    update: {
+                                        url:"@Html.Raw(Url.Action("MessageUpdate", "SendInBlue"))",
+                                        type: "POST",
+                                        dataType: "json"
+                                    }
+                                },
+                                schema: {
+                                    data: "Data",
+                                    total: "Total",
+                                    errors: "Errors",
+                                    model: {
+                                        id: "Id",
+                                        fields: {
+                                            Name: { editable: false, type: "string" },
+                                            IsActive: { editable: true, type: "boolean" },
+                                            ListOfStores: { editable: false, type: "string" },
+                                            TemplateType: { editable: false, type: "string" },
+                                            TemplateTypeId: { editable: true, type: "number" },
+                                            Id: { editable: false, type: "number" }
+                                        }
+                                    }
+                                },
+                                requestEnd: function (e) {
+                                    if (e.type == "update") {
+                                        this.read();
+                                    }
+                                },
+                                error: function(e) {
+                                    display_kendoui_grid_error(e);
+                                    // Cancel the changes
+                                    this.cancelChanges();
+                                },
+                                serverPaging: true,
+                                serverFiltering: true,
+                                serverSorting: true
+                            },
+                            pageable: {
+                                refresh: true,
+                                numeric: false,
+                                previousNext: false,
+                                info: false
+                            },
+                            editable: {
+                                confirmation: false,
+                                mode: "inline"
+                            },
+                            scrollable: false,
+                            columns: [{
+                                field: "Name",
+                                title: "@T("Admin.ContentManagement.MessageTemplates.Fields.Name")"
+                            }, {
+                                field: "IsActive",
+                                title: "@T("Admin.ContentManagement.MessageTemplates.Fields.IsActive")",
+                                width: 100,
+                                headerAttributes: { style: "text-align:center" },
+                                attributes: { style: "text-align:center" },
+                                template: '<img src="@Url.Content("~/Administration/Content/images/")active-#=IsActive#.gif" />'
+                            }, {
+                                field: "ListOfStores",
+                                title: "@T("Admin.ContentManagement.MessageTemplates.Fields.LimitedToStores")"
+                            }, {
+                                field: "TemplateTypeId",
+                                title: "@T("Plugins.Misc.SendInBlue.TemplateType")",
+                                width: 300,
+                                template: "#=TemplateType#",
+                                editor: function storeDropDownEditor(container, options) {
+                                            $('<input required data-text-field="Name" data-value-field="Id" data-bind="value:TemplateTypeId"/>')
+                                                .appendTo(container)
+                                                .kendoDropDownList({
+                                                    autoBind: false,
+                                                    dataSource: [
+                                                        { Id : 0, Name : "@T("Plugins.Misc.SendInBlue.StandartTemplate")" },
+                                                        { Id : 1, Name : "@T("Plugins.Misc.SendInBlue.SendInBlueTemplate")" }
+                                                    ]
+                                                });
+                                        }
+                            }, {
+                                field: "Id",
+                                title: "@T("Plugins.Misc.SendInBlue.EditTemplate")",
+                                width: 150,
+                                template: '<a href="#=EditLink#" target="_blank">@T("Plugins.Misc.SendInBlue.EditTemplate")</a>'
+                            }, {
+                                command: [{
+                                    name: "edit",
+                                    text: {
+                                        edit: "@T("Admin.Common.Edit")",
+                                        update: "@T("Admin.Common.Update")",
+                                        cancel: "@T("Admin.Common.Cancel")"
+                                    }
+                                }],
+                                width: 200
+                        }]
+                        });
+                    });
+                    </script>
+
+                </td>
+            </tr>
+        </table>
+
+        //little hack here for the properly showing model property (ASP.NET bug) 
+        <script type="text/javascript">
+            $(document).ready(function() {
+                $("#@Html.FieldIdFor(model => model.UseSendInBlueSMTP)").prop('checked', $("#@Html.FieldIdFor(model => model.UseSendInBlueSMTP)").val());
+            });
+        </script>
+    }
+}
+
+@helper TabSMS()
+{
+    <p>
+        The cost to send one SMS varies by country. With SendinBlue, you can send text messages to recipients in over 100 countries using SMS credit system.<br /> 
+        To send one SMS in a country, you need to use multiple credits and the exact number depends on the country.<br /> 
+
+        You can estimate the number of SMS credits you need by using <a href="https://www.sendinblue.com/pricing#tab6" target="_blank">calculator</a><br />
+    </p>
+    <table class="adminContent">
+        <tr>
+            <td class="adminTitle">
+                @Html.OverrideStoreCheckboxFor(model => model.UseSMS_OverrideForStore, model => model.UseSMS, Model.ActiveStoreScopeConfiguration)
+                @Html.NopLabelFor(model => model.UseSMS):
+            </td>
+            <td class="adminData">
+                @Html.EditorFor(model => model.UseSMS)
+                @Html.ValidationMessageFor(model => model.UseSMS)
+            </td>
+        </tr>
+        <tr>
+            <td class="adminTitle">
+                @Html.OverrideStoreCheckboxFor(model => model.SMSFrom_OverrideForStore, model => model.SMSFrom, Model.ActiveStoreScopeConfiguration)
+                @Html.NopLabelFor(model => model.SMSFrom):
+            </td>
+            <td class="adminData">
+                @Html.EditorFor(model => model.SMSFrom)
+                @Html.ValidationMessageFor(model => model.SMSFrom)
+            </td>
+        </tr>
+        <tr>
+            <td class="adminTitle">
+                @Html.OverrideStoreCheckboxFor(model => model.MyPhoneNumber_OverrideForStore, model => model.MyPhoneNumber, Model.ActiveStoreScopeConfiguration)
+                @Html.NopLabelFor(model => model.MyPhoneNumber):
+            </td>
+            <td class="adminData">
+                @Html.EditorFor(model => model.MyPhoneNumber)
+                @Html.ValidationMessageFor(model => model.MyPhoneNumber)
+            </td>
+        </tr>
+        <tr>
+            <td colspan="2">
+                <input type="submit" name="saveSMS" class="k-button" value="@T("Admin.Common.Save")" />
+            </td>
+        </tr>
+    </table>
+
+    if (Model.UseSMS)
+    {
+        <p>
+            You cannot use SMS notifications for sending a message to a vendor, a message for email validation, <br />
+            a message to a friend with a product and with the wish list, messages for the activation and deactivation of subscription, message with a gift card.<br />
+        </p>
+
+        <script type="text/javascript">
+            function toggleLoadedAllowedTokens() {
+                $('#pnlAllowedTokens').toggle();
+                if ($('#pnlAllowedTokens').css('display') == 'none') {
+                    $('#allowedTokensShowHide').html('@T("Admin.Common.Show")');
+                }
+                else {
+                    $('#allowedTokensShowHide').html('@T("Admin.Common.Hide")');
+                }
+            }
+
+        </script>
+        <table class="adminContent">
+            <tr>
+                <td class="adminTitle">
+                    @T("Admin.ContentManagement.MessageTemplates.Fields.AllowedTokens")
+                </td>
+                <td class="adminData">
+                    <a id="allowedTokensShowHide" href="javascript:toggleLoadedAllowedTokens();">@T("Admin.Common.Show")</a>
+                    <div id="pnlAllowedTokens" style="display:none">
+                        @Html.DisplayFor(model => model.AllowedTokens)
+                    </div>
+                </td>
+            </tr>
+            <tr>
+                <td  colspan="2">
+                    <div id="sms-grid"></div>
+
+                    <script>
+                    $(document).ready(function () {
+                        $("#sms-grid").kendoGrid({
+                            dataSource: {
+                                type: "json",
+                                transport: {
+                                    read: {
+                                        url: "@Html.Raw(Url.Action("SMSList", "SendInBlue"))",
+                                        type: "POST",
+                                        dataType: "json"
+                                    },
+                                    create: {
+                                        url: "@Html.Raw(Url.Action("SMSAdd", "SendInBlue"))",
+                                        type: "POST",
+                                        dataType: "json",
+                                        data: addAntiForgeryToken
+                                    },
+                                    update: {
+                                        url:"@Html.Raw(Url.Action("SMSUpdate", "SendInBlue"))",
+                                        type: "POST",
+                                        dataType: "json"
+                                    },
+                                    destroy: {
+                                        url: "@Html.Raw(Url.Action("SMSDelete", "SendInBlue"))",
+                                        type: "POST",
+                                        dataType: "json",
+                                        data: addAntiForgeryToken
+                                    }
+                                },
+                                schema: {
+                                    data: "Data",
+                                    total: "Total",
+                                    errors: "Errors",
+                                    model: {
+                                        id: "Id",
+                                        fields: {
+                                            MessageId: { editable: true, type: "number" },
+                                            Name: { editable: false, type: "string" },
+                                            SMSActive: { editable: true, type: "boolean" },
+                                            PhoneTypeId: { editable: true, type: "number" },
+                                            PhoneType: { editable: false, type: "string" },
+                                            Text: { editable: true, type: "string" },
+                                            Id: { editable: false, type: "number" }
+                                        }
+                                    }
+                                },
+                                requestEnd: function (e) {
+                                    if (e.type == "create" || e.type == "update") {
+                                        this.read();
+                                    }
+                                },
+                                error: function(e) {
+                                    display_kendoui_grid_error(e);
+                                    this.cancelChanges();
+                                },
+                                serverPaging: true,
+                                serverFiltering: true,
+                                serverSorting: true
+                            },
+                            pageable: {
+                                refresh: true,
+                                numeric: false,
+                                previousNext: false,
+                                info: false
+                            },
+                            toolbar: [{ name: "create", text: "@T("Plugins.Misc.SendInBlue.AddNewSMSNotification")" }],
+                            edit: function(e) {
+                                if (e.model.isNew()) {
+                                    if (messageTemplates.length > 0) {
+                                        e.model.MessageId = messageTemplates[0].Id;
+                                    }
+                                }
+                            },
+                            editable: {
+                                confirmation: false,
+                                mode: "inline"
+                            },
+                            scrollable: false,
+                            columns: [{
+                                field: "MessageId",
+                                title: "@T("Admin.ContentManagement.MessageTemplates.Fields.Name")",
+                                width: 300,
+                                template: "#=Name#",
+                                editor: function templatesDropDownEditor(container, options) {
+                                            $('<input required data-text-field="Name" data-value-field="Id" data-bind="value:MessageId" name="MessageId"/>')
+                                                .appendTo(container)
+                                                .kendoDropDownList({
+                                                    autoBind: false,
+                                                    dataSource: messageTemplates
+                                                });
+                                        }
+
+                                }, {
+                                    field: "SMSActive",
+                                    title: "@T("Plugins.Misc.SendInBlue.SMSActive")",
+                                    width: 100,
+                                    headerAttributes: { style: "text-align:center" },
+                                    attributes: { style: "text-align:center" },
+                                    template: '<img src="@Url.Content("~/Administration/Content/images/")active-#=SMSActive#.gif" />'
+                                }, {
+                                    field: "PhoneTypeId",
+                                    title: "@T("Plugins.Misc.SendInBlue.PhoneType")",
+                                    width: 200,
+                                    template: "#=PhoneType#",
+                                    editor: function phoneTypeDropDownEditor(container, options) {
+                                        $('<input required data-text-field="Name" data-value-field="Id" data-bind="value:PhoneTypeId"/>')
+                                                    .appendTo(container)
+                                                    .kendoDropDownList({
+                                                        autoBind: false,
+                                                        dataSource: [
+                                                            { Id : 0, Name : "@T("Plugins.Misc.SendInBlue.MyPhone")" },
+                                                            { Id : 1, Name : "@T("Plugins.Misc.SendInBlue.CustomerPhone")" },
+                                                            { Id : 2, Name : "@T("Plugins.Misc.SendInBlue.BillingAddressPhone")" }
+                                                        ]
+                                                    });
+                                            }
+                                }, {
+                                    field: "Text",
+                                    title: "@T("Plugins.Misc.SendInBlue.SMSText")",
+                                    width: 500,
+                                    editor: function textareaEditor(container, options) {
+                                                $('<textarea data-bind="value:Text" style="width: ' + container.width() + 'px; height: ' + (container.height() * 3) + 'px" />')
+                                                    .appendTo(container);
+                                            }
+                                }, {
+                                    command: [{
+                                        name: "edit",
+                                        text: {
+                                            edit: "@T("Admin.Common.Edit")",
+                                            update: "@T("Admin.Common.Update")",
+                                            cancel: "@T("Admin.Common.Cancel")"
+                                        }
+                                    }, {
+                                        name: "destroy",
+                                        text: "@T("Admin.Common.Delete")"
+                                    }],
+                                    width: 200
+                            }]
+                        });
+                    });
+
+                    //local datasource
+                    var messageTemplates = [
+                        @for (int i = 0; i < Model.AvailableMessageTemplates.Count; i++)
+                        {
+                            var messageTemplate = Model.AvailableMessageTemplates[i];
+                            <text>
+                        {
+                            Id: @(messageTemplate.Value),
+                            Name: "@(Html.Raw(HttpUtility.JavaScriptStringEncode(messageTemplate.Text)))"
+                        }
+                            </text>
+                            if (i != Model.AvailableMessageTemplates.Count - 1)
+                            {
+                                <text>,</text>
+                            }
+                        }
+                    ];
+                    </script>
+
+                </td>
+            </tr>
+        </table>
+    }
+}
