@@ -1,15 +1,13 @@
-﻿using Microsoft.CSharp;
+﻿using mailinblue;
+using Microsoft.CSharp;
 using Newtonsoft.Json.Linq;
-using SendInBlue;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Text.RegularExpressions;
 using System.Web;
 using System.Web.Mvc;
 using Nop.Core.Domain.Messages;
-using Nop.Plugin.Misc.SendInBlue.Models;
 using Nop.Services.Configuration;
 using Nop.Services.Logging;
 using Nop.Services.Messages;
@@ -21,9 +19,7 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
     {
         #region Fields
         
-        private readonly IEmailAccountService _emailAccountService;
         private readonly ILogger _logger;
-        private readonly IMessageTokenProvider _messageTokenProvider;
         private readonly INewsLetterSubscriptionService _newsLetterSubscriptionService;
         private readonly ISettingService _settingService;
         private readonly IStoreService _storeService;
@@ -32,16 +28,12 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
 
         #region Ctor
 
-        public SendInBlueEmailManager(IEmailAccountService emailAccountService,
-            ILogger logger,
-            IMessageTokenProvider messageTokenProvider,
+        public SendInBlueEmailManager(ILogger logger,
             INewsLetterSubscriptionService newsLetterSubscriptionService,
             ISettingService settingService,
             IStoreService storeService)
         {
-            this._emailAccountService = emailAccountService;
             this._logger = logger;
-            this._messageTokenProvider = messageTokenProvider;
             this._newsLetterSubscriptionService = newsLetterSubscriptionService;
             this._settingService = settingService;
             this._storeService = storeService;
@@ -49,116 +41,173 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
 
         #endregion
 
+        #region Private properties
+
+        /// <summary>
+        /// Gets a value indicating whether API key is specified
+        /// </summary>
         private bool IsConfigured
         {
-            get { return !string.IsNullOrEmpty(_settingService.LoadSetting<SendInBlueSettings>(0).ApiKey); }
+            get { return !string.IsNullOrEmpty(_settingService.LoadSetting<SendInBlueSettings>().ApiKey); }
         }
 
+        
         private API _manager;
+        /// <summary>
+        /// Get single manager for the requesting service
+        /// </summary>
         private API Manager
         {
             get
             {
                 if (_manager == null)
-                    _manager = new API(_settingService.LoadSetting<SendInBlueSettings>(0).ApiKey);
+                    _manager = new API(_settingService.LoadSetting<SendInBlueSettings>().ApiKey);
                 return _manager;
             }
         }
 
+        /// <summary>
+        /// Gets a value indicating whether request was succeeded
+        /// </summary>
         private bool IsSuccess(dynamic request)
         {
             return request.code == "success" && request.data != null;
         }
 
+        #endregion
+
         #region Methods
 
+        /// <summary>
+        /// Import subscriptions from nopCommerce to SendInBlue
+        /// </summary>
+        /// <param name="manualSync">A value indicating that method is called by user</param>
+        /// <param name="storeScope">Store identifier; pass 0 for the synchronization for the all stores</param>
+        /// <returns>Empty string if success, otherwise error string</returns>
         public string Synchronize(bool manualSync = false, int storeScope = 0)
         {
+            var error = string.Empty;
             if (!IsConfigured)
             {
                 _logger.Error("SendInBlue synchronization error: Plugin not configured");
                 return "Plugin not configured";
             }
 
-            if (manualSync)
-                return SynchronizeOnStore(storeScope, _settingService.LoadSetting<SendInBlueSettings>(storeScope));
+            //use only passed store identifier for the manual synchronization
+            //use all store ids for the synchronization task
+            var storeIds = manualSync ? new List<int> { storeScope }
+                : new List<int> { 0 }.Union(_storeService.GetAllStores().Select(store => store.Id));
 
-            SynchronizeOnStore(0, _settingService.LoadSetting<SendInBlueSettings>());
-            var allStores = _storeService.GetAllStores();
-            if (allStores.Count > 1)
-                foreach (var store in allStores)
-                {
-                    var sendInBlueSettings = _settingService.LoadSetting<SendInBlueSettings>(store.Id);
-                    if (_settingService.SettingExists(sendInBlueSettings, x => x.ListId, store.Id))
-                        SynchronizeOnStore(store.Id, sendInBlueSettings);
-                }
-
-            return string.Empty;
-        }
-
-        private string SynchronizeOnStore(int storeId, SendInBlueSettings sendInBlueSettings)
-        {
-            var subscriptions = _newsLetterSubscriptionService.GetAllNewsLetterSubscriptions(storeId: storeId, isActive: true);
-            if (subscriptions.Count == 0)
-                return "There are no subscriptions";
-
-            if (sendInBlueSettings.ListId == 0)
-                return "List ID is empty";
-
-            var csv = subscriptions.Aggregate(string.Format("{0};{1}", "EMAIL", "STORE_ID"),
-                (current, next) => string.Format("{0}\n{1};{2}", current, next.Email, next.StoreId));
-            var importParams = new Dictionary<string, object>
-                {
-                    { "notify_url", sendInBlueSettings.UrlSync },
-                    { "body", csv },
-                    { "listids", new List<int> { sendInBlueSettings.ListId } }
-                };
-            var import = Manager.import_users(importParams);
-            if (!IsSuccess(import))
+            foreach (var storeId in storeIds)
             {
-                _logger.Error(string.Format("SendInBlue synchronization error: {0}", (string)import.message));
-                return (string)import.message; 
+                //get list identifier from the settings
+                var listId = _settingService.GetSettingByKey<int>("SendInBlueSettings.ListId", storeId: storeId);
+                if (listId > 0)
+                {
+                    //get notify url from the settings
+                    var url = _settingService.GetSettingByKey<string>("SendInBlueSettings.UrlSync", storeId: storeId);
+                    if (string.IsNullOrEmpty(url))
+                        _logger.Warning("SendInBlue synchronization warning: Notify url not specified");
+
+                    var subscriptions = _newsLetterSubscriptionService.GetAllNewsLetterSubscriptions(storeId: storeId, isActive: true);
+                    if (subscriptions.Count == 0)
+                    {
+                        error = "There are no subscriptions";
+                        continue;
+                    }
+
+                    //import subscriptions from nopCommerce to SendInBlue
+                    var csv = subscriptions.Aggregate(string.Format("{0};{1}", "EMAIL", "STORE_ID"),
+                        (current, next) => string.Format("{0}\n{1};{2}", current, next.Email, next.StoreId));
+
+                    //sometimes occur Exception "Request failed" https://github.com/mailin-api/mailin-api-csharp/commit/d7d9f19fd6a18fee51ef7507e2020a972dc18093
+                    //it does not affect the correct functioning
+                    try
+                    {
+                        var importParams = new Dictionary<string, object>
+                        {
+                            { "notify_url", url },
+                            { "body", csv },
+                            { "listids", new List<int> { listId } }
+                        };
+                        var import = Manager.import_users(importParams);
+                        if (!IsSuccess(import))
+                        {
+                            _logger.Error(string.Format("SendInBlue synchronization error: {0}", (string)import.message));
+                            error = (string)import.message;
+                        }
+                    }
+                    catch (Exception)
+                    { }
+                }
+                else
+                    error = "List ID is empty";
             }
 
-            return string.Empty;
+            return error;
         }
 
+        /// <summary>
+        /// Delete unsubscribed user (in nopCommerce) from SendInBlue list
+        /// </summary>
+        /// <param name="email">Subscription email</param>
         public void Unsubscribe(string email)
         {
             if (!IsConfigured)
                 _logger.Error("SendInBlue unsubscription error: Plugin not configured");
 
+            //delete user from all lists
             var unsubscribeParams = new Dictionary<string, string> { { "email", email } };
             var unsubscribe = Manager.delete_user(unsubscribeParams);
             if (!IsSuccess(unsubscribe))
                 _logger.Error(string.Format("SendInBlue unsubscription error: {0}", (string)unsubscribe.message));
         }
 
+        /// <summary>
+        /// Delete unsubscribed user (in SendInBlue) from nopCommerce subscription list
+        /// </summary>
+        /// <param name="unsubscriberUser">User information</param>
         public void UnsubscribeWebhook(string unsubscriberUser)
         {
             if (!IsConfigured)
                 return;
 
+            //parse string to JSON object
             dynamic unsubscriber = JObject.Parse(unsubscriberUser);
+
+            //we pass the store identifier in the X-Mailin-Tag at sending emails, now get it here
+            int storeId;
+            if (!int.TryParse(unsubscriber.tag, out storeId))
+                return;
+
+            var store = _storeService.GetStoreById(storeId);
+            if (store == null)
+                return;
+
+            //get subscription by email and store identifier
             var email = (string)unsubscriber.email;
-            var setting = _settingService.GetAllSettings().Where(
-                x => x.Name == "sendinbluesettings.unsubscribewebhookid" &&
-                x.Value == (string)unsubscriber.id).FirstOrDefault();
-            var storeId = setting != null ? setting.StoreId : 0;
-            var subscription = _newsLetterSubscriptionService.GetNewsLetterSubscriptionByEmailAndStoreId(email, storeId);
+            var subscription = _newsLetterSubscriptionService.GetNewsLetterSubscriptionByEmailAndStoreId(email, store.Id);
             if (subscription != null)
             {
+                //delete subscription
                 _newsLetterSubscriptionService.DeleteNewsLetterSubscription(subscription, false);
                 _logger.Information(string.Format("SendInBlue unsubscription: email {0}, store {1}, date {2}", 
-                    email, _storeService.GetStoreById(storeId).Name, (string)unsubscriber.date_event));
+                    email, store.Name, (string)unsubscriber.date_event));
             }
         }
 
-        public int SetUnsubscribeWebHook(string url, int webhookId)
+        /// <summary>
+        /// Create webhook for the getting notification about unsubscribed users
+        /// </summary>
+        /// <param name="webhookId">Current webhook identifier</param>
+        /// <param name="url">Url of the handler</param>
+        /// <returns>Webhook id</returns>
+        public int GetUnsubscribeWebHookId(int webhookId, string url)
         {
             if (!IsConfigured)
                 return 0;
 
+            //check that webhook already exist
             if (webhookId != 0)
             {
                 var existWebhookParams = new Dictionary<string, int> { { "id", webhookId } };
@@ -167,6 +216,7 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
                     return webhookId;
             }
 
+            //or create new one
             var webhookParams = new Dictionary<string, object>
                 {
                     { "url", url },
@@ -180,26 +230,33 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
             return 0;
         }
 
-        public string GetAccountInfo(ref StringBuilder accountInfo)
+        /// <summary>
+        /// Get SendInBlue common account information
+        /// </summary>
+        /// <param name="error">Errors</param>
+        /// <returns>Account info</returns>
+        public string GetAccountInfo(ref string error)
         {
             if (!IsConfigured)
-                return "Plugin not configured";
-
-            var account = Manager.get_account();
-            if (IsSuccess(account))
-            {
-                accountInfo.AppendFormat("Name: {0}<br />", HttpUtility.HtmlEncode(account.data[2].first_name));
-                accountInfo.AppendFormat("Surname: {0}<br />", HttpUtility.HtmlEncode(account.data[2].last_name));
-                accountInfo.AppendFormat("Plan: {0}<br />", account.data[0].plan_type);
-                accountInfo.AppendFormat("Email credits: {0}<br />", account.data[0].credits);
-                accountInfo.AppendFormat("SMS credits: {0}<br />", account.data[1].credits);
-            }
+                error = "Plugin not configured";
             else
-                return (string)account.message;
+            {
+                var account = Manager.get_account();
+                if (IsSuccess(account))
+                    return string.Format("Name: {1}{0}Second name: {2}{0}Plan: {3}{0}Email credits: {4}{0}SMS credits: {5}{0}",
+                        Environment.NewLine, HttpUtility.HtmlEncode(account.data[2].first_name), HttpUtility.HtmlEncode(account.data[2].last_name),
+                        account.data[0].plan_type, account.data[0].credits, account.data[1].credits);
+                else
+                    error = (string)account.message;
+            }
 
             return string.Empty;
         }
 
+        /// <summary>
+        /// Get available lists for the synchronization subscriptions
+        /// </summary>
+        /// <returns>List of lists</returns>
         public List<SelectListItem> GetLists()
         {
             var availableLists = new List<SelectListItem> { new SelectListItem { Text = "<New list>", Value = "0" } };
@@ -215,6 +272,10 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
             return availableLists;
         }
 
+        /// <summary>
+        /// Get available senders of transactional emails
+        /// </summary>
+        /// <returns>List of senders</returns>
         public List<SelectListItem> GetSenders()
         {
             var availableSenders = new List<SelectListItem>();
@@ -234,62 +295,48 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
             return availableSenders;
         }
 
-        public Dictionary<DateTime, StatisticsModel> GetStatistics()
-        {
-            var statisticsDetails = new Dictionary<DateTime, StatisticsModel>();
-            for (int i = 6; i >= 0; i--)
-            {
-                statisticsDetails.Add(DateTime.Today.AddDays(-i), new StatisticsModel());
-            }
-            
-            if (!IsConfigured)
-                return statisticsDetails;
-
-            var statisticsParams = new Dictionary<string, object> { { "aggregate", 0 }, { "days", 7 } };
-            var statistics = Manager.get_statistics(statisticsParams);
-            if (IsSuccess(statistics) && statistics.data is JArray)
-            {
-                foreach (var day in statistics.data)
-                {
-                    statisticsDetails[(DateTime)day.date] = new StatisticsModel
-                    {
-                        Delivered = day.delivered,
-                        Bounces = day.bounces,
-                        Opens = day.opens,
-                        Spam = day.spamreports
-                    };
-                }
-            }
-
-            return statisticsDetails.Take(7).ToDictionary(x => x.Key, x => x.Value);
-        }
-
-        public string SmtpEnabled()
+        /// <summary>
+        /// Check whether SMTP is enabled on SendInBlue profile
+        /// </summary>
+        /// <param name="error">Errors</param>
+        /// <returns>True if status is enabled, otherwise false</returns>
+        public bool SmtpIsEnabled(ref string error)
         {
             if (!IsConfigured)
-                return "Plugin not configured";
-
-            var smtp = Manager.get_smtp_details();
-            if (IsSuccess(smtp) && smtp.data.relay_data != null)
-                if (smtp.data.relay_data.status == "enabled")
-                    return string.Empty;
-                else
-                    return (string)smtp.data.relay_data.status;
+                error = "Plugin not configured";
             else
-                return (string)smtp.message;
+            {
+                var smtp = Manager.get_smtp_details();
+                if (IsSuccess(smtp) && smtp.data.relay_data != null)
+                    if (smtp.data.relay_data.status == "enabled")
+                        return true;
+                    else
+                        error = string.Format("SMTP is {0}", smtp.data.relay_data.status);
+                else
+                    error = (string)smtp.message;
+            }
+
+            return false;
         }
 
-        public int PrepareList(string name)
+        /// <summary>
+        /// Create new list for synchronization subscriptions in SendInBlue account
+        /// </summary>
+        /// <param name="name">Name of the list</param>
+        /// <returns>List identifier</returns>
+        public int CreateNewList(string name)
         {
             if (!IsConfigured)
                 return 0;
 
+            //create all new lists in the particular nopCommerce folder
+            //check that this folder already exists, otherwise to create it
             var allFoldersParams = new Dictionary<string, int> { { "page", 1 }, { "page_limit", 50 } };
             var allFolders = Manager.get_folders(allFoldersParams);
             if (!IsSuccess(allFolders))
                 return 0;
 
-            var folder = (allFolders.data.folders as JArray).FirstOrDefault(x => (string)x["name"] == "nopCommerce");
+            var folder = (allFolders.data.folders as JArray).FirstOrDefault(x => ((string)x["name"]).Contains("nopCommerce"));
             var folderId = 0;
             if (folder == null)
             {
@@ -303,6 +350,7 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
             else
                 folderId = (int)folder["id"];
 
+            //create new list in the nopCommerce folder
             var newListParams = new Dictionary<string, object>
             {
                 { "list_name", name },
@@ -315,6 +363,9 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
             return newList.data.id;
         }
 
+        /// <summary>
+        /// Create STORE_ID attribute in SendInBlue account
+        /// </summary>
         public void PrepareStoreAttribute()
         {
             if (!IsConfigured)
@@ -325,7 +376,7 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
             if (!IsSuccess(attribute))
                 return;
 
-            if ((attribute.data as JArray).Any(x => (string)x["name"] == "STORE_ID"))
+            if ((attribute.data as JArray).Any(x => x["name"].ToString().Contains("STORE_ID")))
                 return;
             
             var storeAttributeParams = new Dictionary<string, object>
@@ -336,33 +387,47 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
             var storeAttribute = Manager.create_attribute(storeAttributeParams);
         }
 
-        public string PrepareEmailAccount(string senderId, SendInBlueSettings sendInBlueSettings)
+        /// <summary>
+        /// Get email account identifier
+        /// </summary>
+        /// <param name="emailAccountService">Email account service</param>
+        /// <param name="senderId">Sender identifier</param>
+        /// <param name="error">Errors</param>
+        /// <returns>Email account identifier</returns>
+        public int GetEmailAccountId(IEmailAccountService emailAccountService, string senderId, out string error)
         {
+            error = string.Empty;
             if (!IsConfigured)
-                return string.Empty;
+                return 0;
 
+            //get all available senders
             var sendersParams = new Dictionary<string, string> { { "option", "" } };
             var senders = Manager.get_senders(sendersParams);
             if (!IsSuccess(senders))
-                return (string)senders.message;
+            {
+                error = (string)senders.message;
+                return 0;
+            }
 
             foreach (var sender in senders.data)
             {
                 if (sender.id == senderId)
                 {
-                    var emailAccount = _emailAccountService.GetAllEmailAccounts().FirstOrDefault(x =>
+                    //try to find existing email account by name and email
+                    var emailAccount = emailAccountService.GetAllEmailAccounts().FirstOrDefault(x =>
                         x.DisplayName == (string)sender.from_name && x.Email == (string)sender.from_email);
                     if (emailAccount != null)
-                    {
-                        sendInBlueSettings.SendInBlueEmailAccountId = emailAccount.Id;
-                        break;
-                    }
+                        return emailAccount.Id;
 
+                    //or create new one
                     var smtp = Manager.get_smtp_details();
                     if (!IsSuccess(smtp))
-                        return (string)smtp.message;
+                    {
+                        error = (string)senders.message;
+                        return 0;
+                    }
 
-                    var sendInBlueEmailAccount = new EmailAccount()
+                    var newEmailAccount = new EmailAccount()
                     {
                         Host = smtp.data.relay_data.data.relay,
                         Port = smtp.data.relay_data.data.port,
@@ -372,28 +437,43 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
                         Email = sender.from_email,
                         DisplayName = sender.from_name
                     };
-                    _emailAccountService.InsertEmailAccount(sendInBlueEmailAccount);
-                    sendInBlueSettings.SendInBlueEmailAccountId = sendInBlueEmailAccount.Id;
-                    break;
+                    emailAccountService.InsertEmailAccount(newEmailAccount);
+
+                    return newEmailAccount.Id;
                 }
             }
 
-            return string.Empty;
+            return 0;
         }
 
-        public string PrepareAttributes()
+        /// <summary>
+        /// Synchronize nopCommerce tokens and SendInBlue transactional attributes
+        /// </summary>
+        /// <param name="tokens">Tokens</param>
+        /// <param name="error">Errors</param>
+        public void PrepareAttributes(IEnumerable<string> tokens, out string error)
         {
+            error = string.Empty;
             if (!IsConfigured)
-                return string.Empty;
+                return;
 
+            //get already existing transactional attributes
             var attributesParams = new Dictionary<string, string> { { "type", "transactional" } };
             var attributes = Manager.get_attribute(attributesParams);
             if (!IsSuccess(attributes))
-                return (string)attributes.message;
+            {
+                error = (string)attributes.message;
+                return;
+            }
 
-            var tokens = _messageTokenProvider.GetListOfAllowedTokens().Select(x => x.Replace("%", "").Replace(".", "_").Replace("(s)","-s-").ToUpperInvariant());
+            //bring tokens to SendInBlue attributes format
+            tokens = tokens.Select(x => x.Replace("%", "").Replace(".", "_").Replace("(s)","-s-").ToUpperInvariant());
+
+            //get attributes that are not already on SendInBlue account
             if (attributes.data[0] != null)
                 tokens = tokens.Except((attributes.data[0] as JArray).Select(x => x["name"].ToString()).ToList());
+
+            //and create their
             var notExistsAttributes = tokens.ToDictionary(x => x, x => "text");
             if (notExistsAttributes.Count > 0)
             {
@@ -401,31 +481,35 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
                 var newAttributeParams = new Dictionary<string, object> { { "type", "transactional" }, { "data", notExistsAttributes } };
                 var newAttributes = Manager.create_attribute(newAttributeParams);
                 if (!IsSuccess(newAttributes))
-                    return (string)newAttributes.message;
+                    error = (string)newAttributes.message;
             }
-            return string.Empty;
         }
 
-        public int TemplateExistsId(int id)
+        /// <summary>
+        /// Get SendInBlue email template identifier
+        /// </summary>
+        /// <param name="templateId">Current email template id</param>
+        /// <param name="message">Message template</param>
+        /// <param name="emailAccount">Email account</param>
+        /// <returns>Email template identifier</returns>
+        public int GetTemplateId(int templateId, MessageTemplate message, EmailAccount emailAccount)
         {
             if (!IsConfigured)
                 return 0;
 
-            var templateParams = new Dictionary<string, int> { { "id", id } };
-            var template = Manager.get_campaign_v2(templateParams);
-            if (IsSuccess(template))
-                return id;
-            return 0;
-        }
-        
-        public int SetNewTemplate(MessageTemplate message, SendInBlueSettings sendInBlueSettings)
-        {
-            if (!IsConfigured)
-                return 0;
+            //check that appropriate template already exist
+            if (templateId > 0)
+            {
+                var templateParams = new Dictionary<string, int> { { "id", templateId } };
+                var template = Manager.get_campaign_v2(templateParams);
+                if (IsSuccess(template))
+                    return templateId;
+            }
 
-            var emailAccount = _emailAccountService.GetEmailAccountById(sendInBlueSettings.SendInBlueEmailAccountId);
+            //or create new one
             if (emailAccount != null)
             {
+                //the original body and subject of the email template are the same as that of the message template in nopCommerce
                 var body = Regex.Replace(message.Body, "(%[^\\%]*.%)", x => x.ToString().Replace(".", "_").Replace("(s)", "-s-").ToUpperInvariant());
                 var subject = Regex.Replace(message.Subject, "(%[^\\%]*.%)", x => x.ToString().Replace(".", "_").Replace("(s)", "-s-").ToUpperInvariant());
                 var newTemplateParams = new Dictionary<string, object>
@@ -441,9 +525,15 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
                 if (IsSuccess(newTemplate))
                     return newTemplate.data.id;
             }
+
             return 0;
         }
 
+        /// <summary>
+        /// Convert SendInBlue email template to queued email
+        /// </summary>
+        /// <param name="templateId">Email template identifier</param>
+        /// <returns>Queued email</returns>
         public QueuedEmail GetQueuedEmailFromTemplate(int templateId)
         {
             if (!IsConfigured)
@@ -458,6 +548,7 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
                 return null;
             }
 
+            //get template
             var templateParams = new Dictionary<string, int> { { "id", templateId } };
             var template = Manager.get_campaign_v2(templateParams);
             if (!IsSuccess(template))
@@ -466,6 +557,7 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
                 return null;
             }
 
+            //bring attributes to nopCommerce tokens format
             var subject = Regex.Replace((string)template.data[0].subject, "(%[^_]*_.*%)", x => x.ToString().Replace("_", ".").Replace("-S-", "(s)"));
             var body = Regex.Replace((string)template.data[0].html_content, "(%[^_]*_.*%)", x => x.ToString().Replace("_", ".").Replace("-S-", "(s)"));
 
@@ -478,6 +570,12 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
             };
         }
 
+        /// <summary>
+        /// Send SMS 
+        /// </summary>
+        /// <param name="to">Phone number of the receiver</param>
+        /// <param name="from">Name of sender</param>
+        /// <param name="text">Text</param>
         public void SendSMS(string to, string from, string text)
         {
             if (!IsConfigured)

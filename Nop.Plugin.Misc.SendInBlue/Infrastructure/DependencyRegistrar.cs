@@ -19,6 +19,7 @@ namespace Nop.Plugin.Misc.SendInBlue.Infrastructure
         {
             builder.RegisterType<SendInBlueEmailManager>().AsSelf().InstancePerLifetimeScope();
             builder.RegisterType<SendInBlueMessageService>().As<IWorkflowMessageService>().InstancePerLifetimeScope();
+            builder.RegisterType<SendInBlueEmailSender>().As<IEmailSender>().InstancePerLifetimeScope();
         }
 
         /// <summary>
@@ -26,7 +27,7 @@ namespace Nop.Plugin.Misc.SendInBlue.Infrastructure
         /// </summary>
         public int Order
         {
-            get { return 0; }
+            get { return 1; }
         }
     }
 }

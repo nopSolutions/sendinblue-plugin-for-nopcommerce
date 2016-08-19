@@ -26,16 +26,6 @@ namespace Nop.Plugin.Misc.SendInBlue
         public int ListId { get; set; }
 
         /// <summary>
-        /// Gets or sets a value indicating whether to use auto synchronization
-        /// </summary>
-        public bool AutoSync { get; set; }
-
-        /// <summary>
-        /// Gets or sets the period of executing auto synchronization in minutes
-        /// </summary>
-        public int AutoSyncEachMinutes { get; set; }
-
-        /// <summary>
         /// Gets or sets a value indicating whether to use SendInBlue SMTP
         /// </summary>
         public bool UseSendInBlueSMTP { get; set; }

@@ -17,26 +17,50 @@ namespace Nop.Plugin.Misc.SendInBlue
     /// </summary>
     public class SendInBluePlugin : BasePlugin, IMiscPlugin
     {
+        #region Fields
+
         private readonly IEmailAccountService _emailAccountService;
         private readonly IScheduleTaskService _scheduleTaskService;
         private readonly ISettingService _settingService;
-        protected readonly IStoreService _storeService;
+        private readonly IStoreService _storeService;
         private readonly SendInBlueEmailManager _sendInBlueEmailManager;
-        private readonly SendInBlueSettings _sendInBlueSettings;
+
+        #endregion
+
+        #region Ctor
 
         public SendInBluePlugin(IEmailAccountService emailAccountService,
             IScheduleTaskService scheduleTaskService,
             ISettingService settingService,
             IStoreService storeService,
-            SendInBlueEmailManager sendInBlueEmailManager,
-            SendInBlueSettings sendInBlueSettings)
+            SendInBlueEmailManager sendInBlueEmailManager)
         {
             this._emailAccountService = emailAccountService;
             this._scheduleTaskService = scheduleTaskService;
             this._settingService = settingService;
             this._storeService = storeService;
             this._sendInBlueEmailManager = sendInBlueEmailManager;
-            this._sendInBlueSettings = sendInBlueSettings;
+        }
+
+        #endregion
+
+        #region Methods
+
+        /// <summary>
+        /// Import subscriptions from nopCommerce to SendInBlue
+        /// </summary>
+        public void Synchronize()
+        {
+            _sendInBlueEmailManager.Synchronize();
+        }
+
+        /// <summary>
+        /// Unsubscribe user
+        /// </summary>
+        /// <param name="email">Email of unsubscribed</param>
+        public void Unsubscribe(string email)
+        {
+            _sendInBlueEmailManager.Unsubscribe(email);
         }
 
         /// <summary>
@@ -53,13 +77,15 @@ namespace Nop.Plugin.Misc.SendInBlue
         }
 
         /// <summary>
-        /// Install plugin
+        /// Install the plugin
         /// </summary>
         public override void Install()
         {
             //settings
-            var settings = new SendInBlueSettings { SMSMessageTemplatesIds = new List<int>() };
-            _settingService.SaveSetting(settings);
+            _settingService.SaveSetting(new SendInBlueSettings
+            {
+                SMSMessageTemplatesIds = new List<int>()
+            });
 
             //install synchronization task
             if (_scheduleTaskService.GetTaskByType("Nop.Plugin.Misc.SendInBlue.Services.SendInBlueSynchronizationTask, Nop.Plugin.Misc.SendInBlue") == null)
@@ -67,14 +93,14 @@ namespace Nop.Plugin.Misc.SendInBlue
                 _scheduleTaskService.InsertTask(new ScheduleTask
                 {
                     Name = "SendInBlue synchronization",
-                    Seconds = 3600,
+                    Seconds = 10800,
                     Type = "Nop.Plugin.Misc.SendInBlue.Services.SendInBlueSynchronizationTask, Nop.Plugin.Misc.SendInBlue",
                 });
             }
 
             //locales
             this.AddOrUpdatePluginLocaleResource("Plugins.Misc.SendInBlue.AccountInfo", "Account information");
-            this.AddOrUpdatePluginLocaleResource("Plugins.Misc.SendInBlue.ActivateSMTP", "If status is disabled, you need activate your SendInBlue SMTP account as described at https://resources.sendinblue.com/en/activate_smtp_account/");
+            this.AddOrUpdatePluginLocaleResource("Plugins.Misc.SendInBlue.ActivateSMTP", "If SMTP status is disabled, you need activate your SendInBlue SMTP account as described at https://resources.sendinblue.com/en/activate_smtp_account/");
             this.AddOrUpdatePluginLocaleResource("Plugins.Misc.SendInBlue.AddNewSMSNotification", "Add new SMS notification");
             this.AddOrUpdatePluginLocaleResource("Plugins.Misc.SendInBlue.AutoSyncRestart", "If synchronization task parameters has been changed, please restart the application");
             this.AddOrUpdatePluginLocaleResource("Plugins.Misc.SendInBlue.BillingAddressPhone", "Billing address phone number");
@@ -89,8 +115,7 @@ namespace Nop.Plugin.Misc.SendInBlue
             this.AddOrUpdatePluginLocaleResource("Plugins.Misc.SendInBlue.SMS", "SMS");
             this.AddOrUpdatePluginLocaleResource("Plugins.Misc.SendInBlue.SMSActive", "Is SMS active");
             this.AddOrUpdatePluginLocaleResource("Plugins.Misc.SendInBlue.SMSText", "Text");
-            this.AddOrUpdatePluginLocaleResource("Plugins.Misc.SendInBlue.StandartTemplate", "NopCommerce message template");
-            this.AddOrUpdatePluginLocaleResource("Plugins.Misc.SendInBlue.Statistics", "Statistics");
+            this.AddOrUpdatePluginLocaleResource("Plugins.Misc.SendInBlue.StandardTemplate", "NopCommerce message template");
             this.AddOrUpdatePluginLocaleResource("Plugins.Misc.SendInBlue.Synchronization", "Synchronization");
             this.AddOrUpdatePluginLocaleResource("Plugins.Misc.SendInBlue.TemplateType", "Template type");
             this.AddOrUpdatePluginLocaleResource("Plugins.Misc.SendInBlue.Transactional", "Transactional emails");
@@ -119,15 +144,16 @@ namespace Nop.Plugin.Misc.SendInBlue
         }
 
         /// <summary>
-        /// Uninstall plugin
+        /// Uninstall the plugin
         /// </summary>
         public override void Uninstall()
         {
             //smtp accounts
             foreach (var store in _storeService.GetAllStores())
             {
-                var settings = _settingService.LoadSetting<SendInBlueSettings>(store.Id);
-                var emailAccount = _emailAccountService.GetEmailAccountById(settings.SendInBlueEmailAccountId);
+                var emailAccountId = _settingService.GetSettingByKey<int>("SendInBlueSettings.SendInBlueEmailAccountId",
+                    storeId: store.Id, loadSharedValueIfNotFound: true);
+                var emailAccount = _emailAccountService.GetEmailAccountById(emailAccountId);
                 if (emailAccount != null)
                     _emailAccountService.DeleteEmailAccount(emailAccount);
             }
@@ -157,8 +183,7 @@ namespace Nop.Plugin.Misc.SendInBlue
             this.DeletePluginLocaleResource("Plugins.Misc.SendInBlue.SMS");
             this.DeletePluginLocaleResource("Plugins.Misc.SendInBlue.SMSActive");
             this.DeletePluginLocaleResource("Plugins.Misc.SendInBlue.SMSText");
-            this.DeletePluginLocaleResource("Plugins.Misc.SendInBlue.StandartTemplate");
-            this.DeletePluginLocaleResource("Plugins.Misc.SendInBlue.Statistics");
+            this.DeletePluginLocaleResource("Plugins.Misc.SendInBlue.StandardTemplate");
             this.DeletePluginLocaleResource("Plugins.Misc.SendInBlue.Synchronization");
             this.DeletePluginLocaleResource("Plugins.Misc.SendInBlue.TemplateType");
             this.DeletePluginLocaleResource("Plugins.Misc.SendInBlue.Transactional");
@@ -186,21 +211,6 @@ namespace Nop.Plugin.Misc.SendInBlue
             base.Uninstall();
         }
 
-        /// <summary>
-        /// Synchronize SendInBlue and nopCommerce users
-        /// </summary>
-        public void Synchronize()
-        {
-            _sendInBlueEmailManager.Synchronize();
-        }
-
-        /// <summary>
-        /// Unsubscribe user
-        /// </summary>
-        /// <param name="email">Email of unsubscribed</param>
-        public void Unsubscribe(string email)
-        {
-            _sendInBlueEmailManager.Unsubscribe(email);
-        }
+        #endregion
     }
 }

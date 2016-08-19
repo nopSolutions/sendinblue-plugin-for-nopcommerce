@@ -18,6 +18,7 @@ namespace Nop.Plugin.Misc.SendInBlue.Models
         [NopResourceDisplayName("Plugins.Misc.SendInBlue.Fields.ApiKey")]
         public string ApiKey { get; set; }
 
+        [NopResourceDisplayName("Plugins.Misc.SendInBlue.AccountInfo")]
         public string AccountInfo { get; set; }
 
         [NopResourceDisplayName("Plugins.Misc.SendInBlue.Fields.List")]
@@ -35,8 +36,6 @@ namespace Nop.Plugin.Misc.SendInBlue.Models
         [NopResourceDisplayName("Plugins.Misc.SendInBlue.Fields.AutoSyncEachMinutes")]
         public int AutoSyncEachMinutes { get; set; }
 
-        public string SynchronizationInfo { get; set; }
-
         [NopResourceDisplayName("Plugins.Misc.SendInBlue.Fields.UseSendInBlueSMTP")]
         public bool UseSendInBlueSMTP { get; set; }
         public bool UseSendInBlueSMTP_OverrideForStore { get; set; }
@@ -46,8 +45,6 @@ namespace Nop.Plugin.Misc.SendInBlue.Models
         public bool SMTPSenderId_OverrideForStore { get; set; }
 
         public List<SelectListItem> AvailableSenders { get; set; }
-
-        public string SMTPStatus { get; set; }
 
         [NopResourceDisplayName("Plugins.Misc.SendInBlue.Fields.UseSMS")]
         public bool UseSMS { get; set; }
@@ -59,22 +56,11 @@ namespace Nop.Plugin.Misc.SendInBlue.Models
 
         [NopResourceDisplayName("Plugins.Misc.SendInBlue.Fields.MyPhoneNumber")]
         public string MyPhoneNumber { get; set; }
-        public bool MyPhoneNumber_OverrideForStore { get; set; }
 
         public List<SelectListItem> AvailableMessageTemplates { get; set; }
 
+        [NopResourceDisplayName("Admin.ContentManagement.MessageTemplates.Fields.AllowedTokens")]
         public string AllowedTokens { get; set; }
-    }
-
-    public class StatisticsModel
-    {
-        public int? Delivered { get; set; }
-
-        public int? Bounces { get; set; }
-
-        public int? Opens { get; set; }
-
-        public int? Spam { get; set; }
     }
 
     public class ListMessageModel
