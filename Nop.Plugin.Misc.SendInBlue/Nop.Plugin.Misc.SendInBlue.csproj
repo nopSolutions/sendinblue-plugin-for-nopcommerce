@@ -43,7 +43,7 @@
       <HintPath>..\..\packages\Newtonsoft.Json.9.0.1\lib\net45\Newtonsoft.Json.dll</HintPath>
       <Private>False</Private>
     </Reference>
-    <Reference Include="SendInBlue, Version=1.0.6072.16078, Culture=neutral, processorArchitecture=x86">
+    <Reference Include="SendInBlue, Version=1.0.6183.20606, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
       <HintPath>.\SendInBlue.dll</HintPath>
     </Reference>
