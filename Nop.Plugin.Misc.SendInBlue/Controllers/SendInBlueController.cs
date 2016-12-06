@@ -617,7 +617,6 @@ namespace Nop.Plugin.Misc.SendInBlue.Controllers
             return new NullJsonResult();
         }
 
-        [HttpPost]
         public ActionResult ImportUsers(FormCollection form)
         {
             try
