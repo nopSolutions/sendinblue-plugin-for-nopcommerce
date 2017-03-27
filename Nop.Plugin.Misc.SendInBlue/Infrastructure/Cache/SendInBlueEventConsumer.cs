@@ -27,7 +27,7 @@ namespace Nop.Plugin.Misc.SendInBlue.Infrastructure.Cache
             if (plugin == null)
                 return;
 
-            plugin.Unsubscribe(eventMessage.Email); 
+            plugin.Unsubscribe(eventMessage.Subscription.Email); 
         }
     }
 }

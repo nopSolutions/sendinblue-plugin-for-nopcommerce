@@ -205,7 +205,7 @@ namespace Nop.Plugin.Misc.SendInBlue.Controllers
             var model = new SendInBlueModel();
             PrepareModel(model);
 
-            return View("~/Plugins/Misc.SendInBlue/Views/SendInBlue/Configure.cshtml", model);
+            return View("~/Plugins/Misc.SendInBlue/Views/Configure.cshtml", model);
         }
 
         [ChildActionOnly]

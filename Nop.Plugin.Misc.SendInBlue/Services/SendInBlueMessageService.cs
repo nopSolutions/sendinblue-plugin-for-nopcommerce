@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Web;
 using Nop.Core;
 using Nop.Core.Domain.Blogs;
 using Nop.Core.Domain.Catalog;
@@ -57,7 +58,9 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
             IEventPublisher eventPublisher,
             ISettingService settingService,
             IGenericAttributeService genericAttributeService,
-            SendInBlueEmailManager sendInBlueEmailManager)
+            SendInBlueEmailManager sendInBlueEmailManager,
+            CommonSettings commonSettings,
+            HttpContextBase httpContext)
             : base(messageTemplateService,
                 queuedEmailService,
                 languageService,
@@ -66,8 +69,10 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
                 messageTokenProvider,
                 storeService,
                 storeContext,
+                commonSettings,
                 emailAccountSettings,
-                eventPublisher)
+                eventPublisher,
+                httpContext)
         {
             this._emailAccountService = emailAccountService;
             this._eventPublisher = eventPublisher;
