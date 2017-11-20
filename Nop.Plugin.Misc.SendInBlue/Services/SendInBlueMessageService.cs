@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Web;
 using Nop.Core;
 using Nop.Core.Domain.Blogs;
 using Nop.Core.Domain.Catalog;
@@ -59,8 +58,7 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
             ISettingService settingService,
             IGenericAttributeService genericAttributeService,
             SendInBlueEmailManager sendInBlueEmailManager,
-            CommonSettings commonSettings,
-            HttpContextBase httpContext)
+            CommonSettings commonSettings)
             : base(messageTemplateService,
                 queuedEmailService,
                 languageService,
@@ -71,8 +69,7 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
                 storeContext,
                 commonSettings,
                 emailAccountSettings,
-                eventPublisher,
-                httpContext)
+                eventPublisher)
         {
             this._emailAccountService = emailAccountService;
             this._eventPublisher = eventPublisher;
@@ -366,7 +363,7 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
         {
             return SendNotification(order.StoreId, languageId, "OrderPaid.CustomerNotification",
                 new TokenModel { Customer = order.Customer, BillingAddress = order.BillingAddress, Order = order },
-                order.BillingAddress.Email, string.Format("{0} {1}", order.BillingAddress.FirstName, order.BillingAddress.LastName),
+                order.BillingAddress.Email, $"{order.BillingAddress.FirstName} {order.BillingAddress.LastName}",
                 attachmentFilePath, attachmentFileName);
         }
 
@@ -397,7 +394,7 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
         {
             return SendNotification(order.StoreId, languageId, "OrderPlaced.CustomerNotification",
                 new TokenModel { Customer = order.Customer, BillingAddress = order.BillingAddress, Order = order },
-                order.BillingAddress.Email, string.Format("{0} {1}", order.BillingAddress.FirstName, order.BillingAddress.LastName),
+                order.BillingAddress.Email, $"{order.BillingAddress.FirstName} {order.BillingAddress.LastName}",
                 attachmentFilePath, attachmentFileName);
         }
 
@@ -413,7 +410,7 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
                 new TokenModel { Customer = shipment.Order.Customer, BillingAddress = shipment.Order.BillingAddress,
                     Order = shipment.Order, Shipment = shipment },
                 shipment.Order.BillingAddress.Email,
-                string.Format("{0} {1}", shipment.Order.BillingAddress.FirstName, shipment.Order.BillingAddress.LastName));
+                $"{shipment.Order.BillingAddress.FirstName} {shipment.Order.BillingAddress.LastName}");
         }
 
         /// <summary>
@@ -428,7 +425,7 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
                 new TokenModel { Customer = shipment.Order.Customer, BillingAddress = shipment.Order.BillingAddress,
                     Order = shipment.Order, Shipment = shipment },
                 shipment.Order.BillingAddress.Email,
-                string.Format("{0} {1}", shipment.Order.BillingAddress.FirstName, shipment.Order.BillingAddress.LastName));
+                $"{shipment.Order.BillingAddress.FirstName} {shipment.Order.BillingAddress.LastName}");
         }
 
         /// <summary>
@@ -444,7 +441,7 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
         {
             return SendNotification(order.StoreId, languageId, "OrderCompleted.CustomerNotification",
                 new TokenModel { Customer = order.Customer, BillingAddress = order.BillingAddress, Order = order },
-                order.BillingAddress.Email, string.Format("{0} {1}", order.BillingAddress.FirstName, order.BillingAddress.LastName),
+                order.BillingAddress.Email, $"{order.BillingAddress.FirstName} {order.BillingAddress.LastName}",
                 attachmentFilePath, attachmentFileName);
         }
 
@@ -458,7 +455,7 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
         {
             return SendNotification(order.StoreId, languageId, "OrderCancelled.CustomerNotification",
                 new TokenModel { Customer = order.Customer, BillingAddress = order.BillingAddress, Order = order },
-                order.BillingAddress.Email, string.Format("{0} {1}", order.BillingAddress.FirstName, order.BillingAddress.LastName));
+                order.BillingAddress.Email, $"{order.BillingAddress.FirstName} {order.BillingAddress.LastName}");
         }
 
         /// <summary>
@@ -486,7 +483,7 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
             return SendNotification(order.StoreId, languageId, "OrderRefunded.CustomerNotification",
                 new TokenModel { Customer = order.Customer, BillingAddress = order.BillingAddress,
                     Order = order, RefundedAmount = refundedAmount },
-                order.BillingAddress.Email, string.Format("{0} {1}", order.BillingAddress.FirstName, order.BillingAddress.LastName));
+                order.BillingAddress.Email, $"{order.BillingAddress.FirstName} {order.BillingAddress.LastName}");
         }
 
         /// <summary>
@@ -501,7 +498,7 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
                 new TokenModel { Customer = orderNote.Order.Customer, BillingAddress = orderNote.Order.BillingAddress,
                     Order = orderNote.Order, OrderNote = orderNote },
                 orderNote.Order.BillingAddress.Email,
-                string.Format("{0} {1}", orderNote.Order.BillingAddress.FirstName, orderNote.Order.BillingAddress.LastName));
+                $"{orderNote.Order.BillingAddress.FirstName} {orderNote.Order.BillingAddress.LastName}");
         }
 
         /// <summary>
@@ -632,7 +629,7 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
         /// <param name="forum">Forum</param>
         /// <param name="languageId">Message language identifier</param>
         /// <returns>Queued email identifier</returns>
-        public int SendNewForumTopicMessage(Customer customer, ForumTopic forumTopic, Forum forum, int languageId)
+        public new int SendNewForumTopicMessage(Customer customer, ForumTopic forumTopic, Forum forum, int languageId)
         {
             return SendNotification(0, languageId, "Forums.NewForumTopic",
                 new TokenModel { Customer = customer, BillingAddress = customer.BillingAddress,
@@ -650,7 +647,7 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
         /// <param name="friendlyForumTopicPageIndex">Friendly (starts with 1) forum topic page to use for URL generation</param>
         /// <param name="languageId">Message language identifier</param>
         /// <returns>Queued email identifier</returns>
-        public int SendNewForumPostMessage(Customer customer, ForumPost forumPost, ForumTopic forumTopic,
+        public new int SendNewForumPostMessage(Customer customer, ForumPost forumPost, ForumTopic forumTopic,
             Forum forum, int friendlyForumTopicPageIndex, int languageId)
         {
             return SendNotification(0, languageId, "Forums.NewForumPost",
@@ -665,7 +662,7 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
         /// <param name="privateMessage">Private message</param>
         /// <param name="languageId">Message language identifier</param>
         /// <returns>Queued email identifier</returns>
-        public int SendPrivateMessageNotification(PrivateMessage privateMessage, int languageId)
+        public new int SendPrivateMessageNotification(PrivateMessage privateMessage, int languageId)
         {
             return SendNotification(0, languageId, "Customer.NewPM",
                 new TokenModel { Customer = privateMessage.ToCustomer,

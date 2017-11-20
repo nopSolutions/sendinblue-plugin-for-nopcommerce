@@ -1,5 +1,5 @@
 ﻿using System.Collections.Generic;
-using System.Web.Routing;
+using Nop.Core;
 using Nop.Core.Domain.Tasks;
 using Nop.Core.Plugins;
 using Nop.Plugin.Misc.SendInBlue.Services;
@@ -24,6 +24,7 @@ namespace Nop.Plugin.Misc.SendInBlue
         private readonly ISettingService _settingService;
         private readonly IStoreService _storeService;
         private readonly SendInBlueEmailManager _sendInBlueEmailManager;
+        private readonly IWebHelper _webHelper;
 
         #endregion
 
@@ -33,13 +34,15 @@ namespace Nop.Plugin.Misc.SendInBlue
             IScheduleTaskService scheduleTaskService,
             ISettingService settingService,
             IStoreService storeService,
-            SendInBlueEmailManager sendInBlueEmailManager)
+            SendInBlueEmailManager sendInBlueEmailManager,
+            IWebHelper webHelper)
         {
             this._emailAccountService = emailAccountService;
             this._scheduleTaskService = scheduleTaskService;
             this._settingService = settingService;
             this._storeService = storeService;
             this._sendInBlueEmailManager = sendInBlueEmailManager;
+            this._webHelper = webHelper;
         }
 
         #endregion
@@ -63,17 +66,9 @@ namespace Nop.Plugin.Misc.SendInBlue
             _sendInBlueEmailManager.Unsubscribe(email);
         }
 
-        /// <summary>
-        /// Gets a route for plugin configuration
-        /// </summary>
-        /// <param name="actionName">Action name</param>
-        /// <param name="controllerName">Controller name</param>
-        /// <param name="routeValues">Route values</param>
-        public void GetConfigurationRoute(out string actionName, out string controllerName, out RouteValueDictionary routeValues)
+        public override string GetConfigurationPageUrl()
         {
-            actionName = "Configure";
-            controllerName = "SendInBlue";
-            routeValues = new RouteValueDictionary { { "Namespaces", "Nop.Plugin.Misc.SendInBlue.Controllers" }, { "area", null } };
+            return $"{_webHelper.GetStoreLocation()}Admin/SendInBlue/Configure";
         }
 
         /// <summary>

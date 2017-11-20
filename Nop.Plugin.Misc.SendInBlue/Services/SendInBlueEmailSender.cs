@@ -3,8 +3,9 @@ using Nop.Core;
 using Nop.Core.Domain.Messages;
 using Nop.Services.Configuration;
 using Nop.Services.Media;
+using Nop.Services.Messages;
 
-namespace Nop.Services.Messages
+namespace Nop.Plugin.Misc.SendInBlue.Services
 {
     /// <summary>
     /// SendInBlue email sender

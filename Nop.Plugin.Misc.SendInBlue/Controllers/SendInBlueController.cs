@@ -2,8 +2,8 @@
 using System.Linq;
 using System.IO;
 using System.Net;
-using System.Web;
-using System.Web.Mvc;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using Nop.Core;
 using Nop.Core.Domain.Messages;
 using Nop.Core.Domain.Tasks;
@@ -16,13 +16,15 @@ using Nop.Services.Logging;
 using Nop.Services.Messages;
 using Nop.Services.Stores;
 using Nop.Services.Tasks;
+using Nop.Web.Framework;
 using Nop.Web.Framework.Controllers;
 using Nop.Web.Framework.Kendoui;
 using Nop.Web.Framework.Mvc;
+using Nop.Web.Framework.Mvc.Filters;
 
 namespace Nop.Plugin.Misc.SendInBlue.Controllers
 {
-    [AdminAuthorize]
+
     public class SendInBlueController : BasePluginController
     {
         /// <summary>
@@ -31,8 +33,7 @@ namespace Nop.Plugin.Misc.SendInBlue.Controllers
         private const string EDIT_TEMPLATE_URL = "https://my.sendinblue.com/camp/step1/type/template/id/";
 
         #region Fields
-
-        private readonly HttpContextBase _httpContext;
+        
         private readonly IEmailAccountService _emailAccountService;
         private readonly IGenericAttributeService _genericAttributeService;
         private readonly ILocalizationService _localizationService;
@@ -50,8 +51,7 @@ namespace Nop.Plugin.Misc.SendInBlue.Controllers
 
         #region Ctor
 
-        public SendInBlueController(HttpContextBase httpContext,
-            IEmailAccountService emailAccountService,
+        public SendInBlueController(IEmailAccountService emailAccountService,
             IGenericAttributeService genericAttributeService,
             ILocalizationService localizationService,
             ILogger logger,
@@ -64,7 +64,6 @@ namespace Nop.Plugin.Misc.SendInBlue.Controllers
             IWorkContext workContext,
             SendInBlueEmailManager sendInBlueEmailManager)
         {
-            this._httpContext = httpContext;
             this._emailAccountService = emailAccountService;
             this._genericAttributeService = genericAttributeService;
             this._localizationService = localizationService;
@@ -148,14 +147,12 @@ namespace Nop.Plugin.Misc.SendInBlue.Controllers
             model.AvailableMessageTemplates = _messageTemplateService.GetAllMessageTemplates(storeId).Select(x => new SelectListItem
                 {
                     Value = x.Id.ToString(),
-                    Text = storeId > 0 ? x.Name : string.Format("{0} {1}", x.Name, !x.LimitedToStores ? string.Empty :
-                        _storeService.GetAllStores().Where(s => _storeMappingService.GetStoresIdsWithAccess(x).Contains(s.Id))
-                        .Aggregate("-", (current, next) => string.Format("{0} {1}, ", current, next.Name)).TrimEnd(','))
+                    Text = storeId > 0 ? x.Name : $"{x.Name} {(!x.LimitedToStores ? string.Empty : _storeService.GetAllStores().Where(s => _storeMappingService.GetStoresIdsWithAccess(x).Contains(s.Id)).Aggregate("-", (current, next) => $"{current} {next.Name}, ").TrimEnd(','))}"
                 }).ToList();
 
             //get string of allowed tokens
             model.AllowedTokens = _messageTokenProvider.GetListOfAllowedTokens()
-                .Aggregate(string.Empty, (current, next) => string.Format("{0}, {1}", current, next)).Trim(',');
+                .Aggregate(string.Empty, (current, next) => $"{current}, {next}").Trim(',');
         }
 
         /// <summary>
@@ -199,8 +196,9 @@ namespace Nop.Plugin.Misc.SendInBlue.Controllers
 
         #region Methods
 
-        [ChildActionOnly]
-        public ActionResult Configure()
+        [AuthorizeAdmin]
+        [Area(AreaNames.Admin)]
+        public IActionResult Configure()
         {
             var model = new SendInBlueModel();
             PrepareModel(model);
@@ -208,10 +206,11 @@ namespace Nop.Plugin.Misc.SendInBlue.Controllers
             return View("~/Plugins/Misc.SendInBlue/Views/Configure.cshtml", model);
         }
 
-        [ChildActionOnly]
+        [AuthorizeAdmin]
+        [Area(AreaNames.Admin)]
         [HttpPost, ActionName("Configure")]
         [FormValueRequired("save")]
-        public ActionResult Configure(SendInBlueModel model)
+        public IActionResult Configure(SendInBlueModel model)
         {
             if (!ModelState.IsValid)
                 return Configure();
@@ -231,10 +230,11 @@ namespace Nop.Plugin.Misc.SendInBlue.Controllers
             return Configure();
         }
 
-        [ChildActionOnly]
+        [AuthorizeAdmin]
+        [Area(AreaNames.Admin)]
         [HttpPost, ActionName("Configure")]
         [FormValueRequired("saveSync")]
-        public ActionResult SaveSynchronization(SendInBlueModel model)
+        public IActionResult SaveSynchronization(SendInBlueModel model)
         {
             if (!ModelState.IsValid)
                 return Configure();
@@ -266,11 +266,11 @@ namespace Nop.Plugin.Misc.SendInBlue.Controllers
 
             //set notify url for the importing process
             var currentStore = storeId == 0 ? _storeService.GetAllStores().FirstOrDefault() : _storeService.GetStoreById(storeId);
-            sendInBlueSettings.UrlSync = string.Format("{0}{1}", currentStore.Url.TrimEnd('/'), Url.RouteUrl("Plugin.Misc.SendInBlue.ImportUsers"));
+            sendInBlueSettings.UrlSync = $"{currentStore.Url.TrimEnd('/')}{Url.RouteUrl("Plugin.Misc.SendInBlue.ImportUsers")}";
             _settingService.SaveSetting(sendInBlueSettings, x => x.UrlSync, storeId, false);
 
             //create webhook for the unsubscribing event
-            var unsubscribeUrl = string.Format("{0}{1}", currentStore.Url.TrimEnd('/'), Url.RouteUrl("Plugin.Misc.SendInBlue.Unsubscribe"));
+            var unsubscribeUrl = $"{currentStore.Url.TrimEnd('/')}{Url.RouteUrl("Plugin.Misc.SendInBlue.Unsubscribe")}";
             sendInBlueSettings.UnsubscribeWebhookId = _sendInBlueEmailManager.GetUnsubscribeWebHookId(sendInBlueSettings.UnsubscribeWebhookId, unsubscribeUrl);
             _settingService.SaveSetting(sendInBlueSettings, x => x.UnsubscribeWebhookId, storeId, false);
 
@@ -289,10 +289,11 @@ namespace Nop.Plugin.Misc.SendInBlue.Controllers
             return Configure();
         }
 
-        [ChildActionOnly]
+        [AuthorizeAdmin]
+        [Area(AreaNames.Admin)]
         [HttpPost, ActionName("Configure")]
         [FormValueRequired("sync")]
-        public ActionResult Synchronization(SendInBlueModel model)
+        public IActionResult Synchronization(SendInBlueModel model)
         {
             if (!ModelState.IsValid)
                 return Configure();
@@ -317,13 +318,14 @@ namespace Nop.Plugin.Misc.SendInBlue.Controllers
 
         public string GetSynchronizationInfo()
         {
-            return TempData["synchronizationEnd"] != null ? TempData["synchronizationEnd"].ToString() : string.Empty;
+            return TempData["synchronizationEnd"]?.ToString() ?? string.Empty;
         }
 
-        [ChildActionOnly]
+        [AuthorizeAdmin]
+        [Area(AreaNames.Admin)]
         [HttpPost, ActionName("Configure")]
         [FormValueRequired("saveSMTP")]
-        public ActionResult ConfigureSMTP(SendInBlueModel model)
+        public IActionResult ConfigureSMTP(SendInBlueModel model)
         {
             if (!ModelState.IsValid)
                 return Configure();
@@ -382,7 +384,9 @@ namespace Nop.Plugin.Misc.SendInBlue.Controllers
         }
 
         [HttpPost]
-        public ActionResult MessageList(ListMessageModel model)
+        [AuthorizeAdmin]
+        [Area(AreaNames.Admin)]
+        public IActionResult MessageList(ListMessageModel model)
         {
             var storeId = GetActiveStoreScopeConfiguration(_storeService, _workContext);
             var messageTemplates = _messageTemplateService.GetAllMessageTemplates(storeId);
@@ -399,12 +403,12 @@ namespace Nop.Plugin.Misc.SendInBlue.Controllers
                         Name = x.Name,
                         IsActive = x.IsActive,
                         ListOfStores = _storeService.GetAllStores().Where(s => !x.LimitedToStores || _storeMappingService.GetStoresIdsWithAccess(x).Contains(s.Id))
-                            .Aggregate(string.Empty, (current, next) => string.Format("{0}, {1}", current, next.Name)).Trim(','),
+                            .Aggregate(string.Empty, (current, next) => $"{current}, {next.Name}").Trim(','),
                         TemplateTypeId = isStandardTemplate ? 0 : 1,
                         TemplateType = isStandardTemplate ? _localizationService.GetResource("Plugins.Misc.SendInBlue.StandardTemplate")
                             : _localizationService.GetResource("Plugins.Misc.SendInBlue.SendInBlueTemplate"),
                         EditLink = isStandardTemplate ? Url.Action("Edit", "MessageTemplate", new { id = x.Id, area = "Admin" })
-                            : string.Format("{0}{1}", EDIT_TEMPLATE_URL, x.GetAttribute<int>("TemplateId", _genericAttributeService))
+                            : $"{EDIT_TEMPLATE_URL}{x.GetAttribute<int>("TemplateId", _genericAttributeService)}"
                     };
 
                     return message;
@@ -416,7 +420,9 @@ namespace Nop.Plugin.Misc.SendInBlue.Controllers
         }
 
         [HttpPost]
-        public ActionResult MessageUpdate(ListMessageModel model)
+        [AuthorizeAdmin]
+        [Area(AreaNames.Admin)]
+        public IActionResult MessageUpdate(ListMessageModel model)
         {
             if (!ModelState.IsValid)
                 return Json(new DataSourceResult { Errors = ModelState.SerializeErrors() });
@@ -444,7 +450,7 @@ namespace Nop.Plugin.Misc.SendInBlue.Controllers
                 _genericAttributeService.SaveAttribute(message, "SendInBlueTemplate", true);
                 _genericAttributeService.SaveAttribute(message, "TemplateId", templateId);
                 model.TemplateType = _localizationService.GetResource("Plugins.Misc.SendInBlue.SendInBlueTemplate");
-                model.EditLink = string.Format("{0}{1}", EDIT_TEMPLATE_URL, templateId);
+                model.EditLink = $"{EDIT_TEMPLATE_URL}{templateId}";
             }
 
             //update nopCommerce message template
@@ -457,10 +463,11 @@ namespace Nop.Plugin.Misc.SendInBlue.Controllers
             return new NullJsonResult();
         }
 
-        [ChildActionOnly]
+        [AuthorizeAdmin]
+        [Area(AreaNames.Admin)]
         [HttpPost, ActionName("Configure")]
         [FormValueRequired("saveSMS")]
-        public ActionResult ConfigureSMS(SendInBlueModel model)
+        public IActionResult ConfigureSMS(SendInBlueModel model)
         {
             if (!ModelState.IsValid)
                 return Configure();
@@ -490,7 +497,9 @@ namespace Nop.Plugin.Misc.SendInBlue.Controllers
         }
 
         [HttpPost]
-        public ActionResult SMSList(ListSMSModel model)
+        [AuthorizeAdmin]
+        [Area(AreaNames.Admin)]
+        public IActionResult SMSList(ListSMSModel model)
         {
             var storeId = GetActiveStoreScopeConfiguration(_storeService, _workContext);
             var sendInBlueSettings = _settingService.LoadSetting<SendInBlueSettings>(storeId);
@@ -507,9 +516,7 @@ namespace Nop.Plugin.Misc.SendInBlue.Controllers
                     {
                         Id = x.Id,
                         MessageId = x.Id,
-                        Name = storeId > 0 ? x.Name : string.Format("{0} {1}", x.Name, !x.LimitedToStores ? string.Empty :
-                            _storeService.GetAllStores().Where(s => !x.LimitedToStores || _storeMappingService.GetStoresIdsWithAccess(x).Contains(s.Id))
-                            .Aggregate("-", (current, next) => string.Format("{0} {1}, ", current, next.Name)).TrimEnd(' ', ',')),
+                        Name = storeId > 0 ? x.Name : $"{x.Name} {(!x.LimitedToStores ? string.Empty : _storeService.GetAllStores().Where(s => !x.LimitedToStores || _storeMappingService.GetStoresIdsWithAccess(x).Contains(s.Id)).Aggregate("-", (current, next) => $"{current} {next.Name}, ").TrimEnd(' ', ','))}",
                         SMSActive = x.GetAttribute<bool>("UseSMS", _genericAttributeService),
                         PhoneTypeId = phoneTypeID,
                         Text = x.GetAttribute<string>("SMSText", _genericAttributeService)
@@ -541,7 +548,9 @@ namespace Nop.Plugin.Misc.SendInBlue.Controllers
         }
 
         [HttpPost]
-        public ActionResult SMSAdd(ListSMSModel model)
+        [AuthorizeAdmin]
+        [Area(AreaNames.Admin)]
+        public IActionResult SMSAdd(ListSMSModel model)
         {
             if (!ModelState.IsValid)
                 return Json(new DataSourceResult { Errors = ModelState.SerializeErrors() });
@@ -569,7 +578,9 @@ namespace Nop.Plugin.Misc.SendInBlue.Controllers
         }
 
         [HttpPost]
-        public ActionResult SMSUpdate(ListSMSModel model)
+        [AuthorizeAdmin]
+        [Area(AreaNames.Admin)]
+        public IActionResult SMSUpdate(ListSMSModel model)
         {
             if (!ModelState.IsValid)
                 return Json(new DataSourceResult { Errors = ModelState.SerializeErrors() });
@@ -582,7 +593,9 @@ namespace Nop.Plugin.Misc.SendInBlue.Controllers
         }
 
         [HttpPost]
-        public ActionResult SMSDelete(ListSMSModel model)
+        [AuthorizeAdmin]
+        [Area(AreaNames.Admin)]
+        public IActionResult SMSDelete(ListSMSModel model)
         {
             if (!ModelState.IsValid)
                 return Json(new DataSourceResult { Errors = ModelState.SerializeErrors() });
@@ -617,8 +630,9 @@ namespace Nop.Plugin.Misc.SendInBlue.Controllers
             return new NullJsonResult();
         }
 
-        public ActionResult ImportUsers(FormCollection form)
+        public IActionResult ImportUsers()
         {
+            var form = Request.Form;
             try
             {
                 //logging info
@@ -635,15 +649,15 @@ namespace Nop.Plugin.Misc.SendInBlue.Controllers
                 TempData["synchronizationEnd"] = ex.Message;
             }
 
-            return new HttpStatusCodeResult(HttpStatusCode.OK);
+            return new StatusCodeResult((int)HttpStatusCode.OK);
         }
 
         [HttpPost]
-        public ActionResult UnsubscribeWebHook()
+        public IActionResult UnsubscribeWebHook()
         {
             try
             {
-                using (var streamReader = new StreamReader(_httpContext.Request.InputStream))
+                using (var streamReader = new StreamReader(Request.Body))
                 {
                     _sendInBlueEmailManager.UnsubscribeWebhook(streamReader.ReadToEnd());
                 }
@@ -653,7 +667,7 @@ namespace Nop.Plugin.Misc.SendInBlue.Controllers
                 _logger.Error(ex.Message, ex);
             }
 
-            return new HttpStatusCodeResult(HttpStatusCode.OK);
+            return new StatusCodeResult((int)HttpStatusCode.OK);
         }
 
         #endregion

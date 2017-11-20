@@ -1,17 +1,16 @@
-﻿using mailinblue;
-using Microsoft.CSharp;
-using Newtonsoft.Json.Linq;
+﻿using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 using System.Text.RegularExpressions;
-using System.Web;
-using System.Web.Mvc;
 using Nop.Core.Domain.Messages;
 using Nop.Services.Configuration;
 using Nop.Services.Logging;
 using Nop.Services.Messages;
 using Nop.Services.Stores;
+using mailinblue;
+using Microsoft.AspNetCore.Mvc.Rendering;
 
 namespace Nop.Plugin.Misc.SendInBlue.Services
 {
@@ -58,12 +57,7 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
         /// </summary>
         private API Manager
         {
-            get
-            {
-                if (_manager == null)
-                    _manager = new API(_settingService.LoadSetting<SendInBlueSettings>().ApiKey);
-                return _manager;
-            }
+            get { return _manager ?? (_manager = new API(_settingService.LoadSetting<SendInBlueSettings>().ApiKey)); }
         }
 
         /// <summary>
@@ -117,8 +111,8 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
                     }
 
                     //import subscriptions from nopCommerce to SendInBlue
-                    var csv = subscriptions.Aggregate(string.Format("{0};{1}", "EMAIL", "STORE_ID"),
-                        (current, next) => string.Format("{0}\n{1};{2}", current, next.Email, next.StoreId));
+                    var csv = subscriptions.Aggregate("EMAIL;STORE_ID",
+                        (current, next) => $"{current}\n{next.Email};{next.StoreId}");
 
                     //sometimes occur Exception "Request failed" https://github.com/mailin-api/mailin-api-csharp/commit/d7d9f19fd6a18fee51ef7507e2020a972dc18093
                     //it does not affect the correct functioning
@@ -133,11 +127,11 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
                         var import = Manager.import_users(importParams);
                         if (!IsSuccess(import))
                         {
-                            _logger.Error(string.Format("SendInBlue synchronization error: {0}", (string)import.message));
+                            _logger.Error($"SendInBlue synchronization error: {(string) import.message}");
                             error = (string)import.message;
                         }
                     }
-                    catch (Exception)
+                    catch
                     { }
                 }
                 else
@@ -160,7 +154,7 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
             var unsubscribeParams = new Dictionary<string, string> { { "email", email } };
             var unsubscribe = Manager.delete_user(unsubscribeParams);
             if (!IsSuccess(unsubscribe))
-                _logger.Error(string.Format("SendInBlue unsubscription error: {0}", (string)unsubscribe.message));
+                _logger.Error($"SendInBlue unsubscription error: {(string) unsubscribe.message}");
         }
 
         /// <summary>
@@ -191,8 +185,7 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
             {
                 //delete subscription
                 _newsLetterSubscriptionService.DeleteNewsLetterSubscription(subscription, false);
-                _logger.Information(string.Format("SendInBlue unsubscription: email {0}, store {1}, date {2}", 
-                    email, store.Name, (string)unsubscriber.date_event));
+                _logger.Information($"SendInBlue unsubscription: email {email}, store {store.Name}, date {(string) unsubscriber.date_event}");
             }
         }
 
@@ -244,10 +237,9 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
                 var account = Manager.get_account();
                 if (IsSuccess(account))
                     return string.Format("Name: {1}{0}Second name: {2}{0}Plan: {3}{0}Email credits: {4}{0}SMS credits: {5}{0}",
-                        Environment.NewLine, HttpUtility.HtmlEncode(account.data[2].first_name), HttpUtility.HtmlEncode(account.data[2].last_name),
+                        Environment.NewLine, WebUtility.HtmlEncode(account.data[2].first_name?.ToString()??string.Empty), WebUtility.HtmlEncode(account.data[2].last_name?.ToString() ?? string.Empty),
                         account.data[0].plan_type, account.data[0].credits, account.data[1].credits);
-                else
-                    error = (string)account.message;
+                error = (string)account.message;
             }
 
             return string.Empty;
@@ -336,8 +328,8 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
             if (!IsSuccess(allFolders))
                 return 0;
 
-            var folder = (allFolders.data.folders as JArray).FirstOrDefault(x => ((string)x["name"]).Contains("nopCommerce"));
-            var folderId = 0;
+            var folder = (allFolders.data.folders as JArray)?.FirstOrDefault(x => ((string)x["name"]).Contains("nopCommerce"));
+            int folderId;
             if (folder == null)
             {
                 var newFolderParams = new Dictionary<string, string> { { "name", "nopCommerce" } };
@@ -376,7 +368,8 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
             if (!IsSuccess(attribute))
                 return;
 
-            if ((attribute.data as JArray).Any(x => x["name"].ToString().Contains("STORE_ID")))
+            var containsAttribute = (attribute.data as JArray)?.Any(x => x["name"].ToString().Contains("STORE_ID"));
+            if (containsAttribute.HasValue && containsAttribute.Value)
                 return;
             
             var storeAttributeParams = new Dictionary<string, object>
@@ -384,9 +377,9 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
                 { "type", "normal" },
                 { "data", new Dictionary<string, string> { { "STORE_ID", "text" } } }
             };
-            var storeAttribute = Manager.create_attribute(storeAttributeParams);
+            var unused = Manager.create_attribute(storeAttributeParams);
         }
-
+            
         /// <summary>
         /// Get email account identifier
         /// </summary>
@@ -471,7 +464,7 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
 
             //get attributes that are not already on SendInBlue account
             if (attributes.data[0] != null)
-                tokens = tokens.Except((attributes.data[0] as JArray).Select(x => x["name"].ToString()).ToList());
+                tokens = tokens.Except((attributes.data[0] as JArray)?.Select(x => x["name"].ToString()).ToList() ?? new List<string>());
 
             //and create their
             var notExistsAttributes = tokens.ToDictionary(x => x, x => "text");
@@ -553,7 +546,7 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
             var template = Manager.get_campaign_v2(templateParams);
             if (!IsSuccess(template))
             {
-                _logger.Error(string.Format("SendInBlue email sending error: {0}", (string)template.message));
+                _logger.Error($"SendInBlue email sending error: {(string) template.message}");
                 return null;
             }
 
@@ -596,10 +589,10 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
             };
             var sms = Manager.send_sms(smsParams);
             if (IsSuccess(sms))
-                _logger.Information(string.Format("SendInBlue SMS sent: {0}", (string)sms.data.description ??
-                    string.Format("credits remaining {0}", (string)sms.data.remaining_credit)));
+                _logger.Information(
+                    $"SendInBlue SMS sent: {(string) sms.data.description ?? $"credits remaining {(string) sms.data.remaining_credit}"}");
             else
-                _logger.Error(string.Format("SendInBlue SMS sending error: {0}", (string)sms.message));
+                _logger.Error($"SendInBlue SMS sending error: {(string) sms.message}");
         }
 
         #endregion

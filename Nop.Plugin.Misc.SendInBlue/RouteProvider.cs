@@ -1,23 +1,22 @@
-﻿using System.Web.Mvc;
-using System.Web.Routing;
-using Nop.Web.Framework.Mvc.Routes;
+﻿using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Routing;
+using Nop.Web.Framework.Mvc.Routing;
 
 namespace Nop.Plugin.Misc.SendInBlue
 {
     public class RouteProvider : IRouteProvider
     {
-        public void RegisterRoutes(RouteCollection routes)
+        public void RegisterRoutes(IRouteBuilder routeBuilder)
         {
-            routes.MapRoute("Plugin.Misc.SendInBlue.ImportUsers",
+            routeBuilder.MapRoute("Plugin.Misc.SendInBlue.ImportUsers",
                 "Plugins/SendInBlue/ImportUsers",
-                new { controller = "SendInBlue", action = "ImportUsers" },
-                new[] { "Nop.Plugin.Misc.SendInBlue.Controllers" });
+                new { controller = "SendInBlue", action = "ImportUsers" });
 
-            routes.MapRoute("Plugin.Misc.SendInBlue.Unsubscribe",
+            routeBuilder.MapRoute("Plugin.Misc.SendInBlue.Unsubscribe",
                 "Plugins/SendInBlue/UnsubscribeWebHook",
-                new { controller = "SendInBlue", action = "UnsubscribeWebHook" },
-                new[] { "Nop.Plugin.Misc.SendInBlue.Controllers" });
+                new { controller = "SendInBlue", action = "UnsubscribeWebHook" });
         }
+        
 
         public int Priority
         {

@@ -20,14 +20,10 @@ namespace Nop.Plugin.Misc.SendInBlue.Infrastructure.Cache
         public void HandleEvent(EmailUnsubscribedEvent eventMessage)
         {
             var pluginDescriptor = _pluginFinder.GetPluginDescriptorBySystemName("Misc.SendInBlue");
-            if (pluginDescriptor == null)
-                return;
 
-            var plugin = pluginDescriptor.Instance() as SendInBluePlugin;
-            if (plugin == null)
-                return;
+            var plugin = pluginDescriptor?.Instance() as SendInBluePlugin;
 
-            plugin.Unsubscribe(eventMessage.Subscription.Email); 
+            plugin?.Unsubscribe(eventMessage.Subscription.Email); 
         }
     }
 }
