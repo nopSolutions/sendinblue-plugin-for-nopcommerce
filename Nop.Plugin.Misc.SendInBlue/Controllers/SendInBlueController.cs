@@ -630,9 +630,9 @@ namespace Nop.Plugin.Misc.SendInBlue.Controllers
             return new NullJsonResult();
         }
 
-        public IActionResult ImportUsers()
+        public IActionResult ImportUsers(IpnModel model)
         {
-            var form = Request.Form;
+            var form = model.Form;
             try
             {
                 //logging info
