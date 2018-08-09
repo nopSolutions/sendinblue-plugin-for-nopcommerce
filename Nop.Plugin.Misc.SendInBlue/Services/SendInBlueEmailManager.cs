@@ -45,20 +45,14 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
         /// <summary>
         /// Gets a value indicating whether API key is specified
         /// </summary>
-        private bool IsConfigured
-        {
-            get { return !string.IsNullOrEmpty(_settingService.LoadSetting<SendInBlueSettings>().ApiKey); }
-        }
-
+        private bool IsConfigured => !string.IsNullOrEmpty(_settingService.LoadSetting<SendInBlueSettings>().ApiKey);
         
         private API _manager;
+
         /// <summary>
         /// Get single manager for the requesting service
         /// </summary>
-        private API Manager
-        {
-            get { return _manager ?? (_manager = new API(_settingService.LoadSetting<SendInBlueSettings>().ApiKey)); }
-        }
+        private API Manager => _manager ?? (_manager = new API(_settingService.LoadSetting<SendInBlueSettings>().ApiKey));
 
         /// <summary>
         /// Gets a value indicating whether request was succeeded
@@ -132,7 +126,9 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
                         }
                     }
                     catch
-                    { }
+                    {
+                        // ignored
+                    }
                 }
                 else
                     error = "List ID is empty";
@@ -170,8 +166,7 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
             dynamic unsubscriber = JObject.Parse(unsubscriberUser);
 
             //we pass the store identifier in the X-Mailin-Tag at sending emails, now get it here
-            int storeId;
-            if (!int.TryParse(unsubscriber.tag, out storeId))
+            if (!int.TryParse(unsubscriber.tag, out int storeId))
                 return;
 
             var store = _storeService.GetStoreById(storeId);
@@ -181,12 +176,12 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
             //get subscription by email and store identifier
             var email = (string)unsubscriber.email;
             var subscription = _newsLetterSubscriptionService.GetNewsLetterSubscriptionByEmailAndStoreId(email, store.Id);
-            if (subscription != null)
-            {
-                //delete subscription
-                _newsLetterSubscriptionService.DeleteNewsLetterSubscription(subscription, false);
-                _logger.Information($"SendInBlue unsubscription: email {email}, store {store.Name}, date {(string) unsubscriber.date_event}");
-            }
+            if (subscription == null) 
+                return;
+
+            //delete subscription
+            _newsLetterSubscriptionService.DeleteNewsLetterSubscription(subscription, false);
+            _logger.Information($"SendInBlue unsubscription: email {email}, store {store.Name}, date {(string) unsubscriber.date_event}");
         }
 
         /// <summary>
@@ -257,9 +252,11 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
 
             var listsParams = new Dictionary<string, int> { { "list_parent", 0 }, { "page", 1 }, { "page_limit", 50 } };
             var lists = Manager.get_lists(listsParams);
-            if (IsSuccess(lists))
-                foreach (var list in lists.data.lists)
-                    availableLists.Add(new SelectListItem { Text = list.name, Value = list.id });
+            if (!IsSuccess(lists)) 
+                return availableLists;
+
+            foreach (var list in lists.data.lists)
+                availableLists.Add(new SelectListItem { Text = list.name, Value = list.id });
 
             return availableLists;
         }
@@ -276,13 +273,15 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
 
             var sendersParams = new Dictionary<string, string> { { "option", "" } };
             var senders = Manager.get_senders(sendersParams);
-            if (IsSuccess(senders))
-                foreach (var sender in senders.data)
-                    availableSenders.Add(new SelectListItem
-                    {
-                        Text = string.Format("{0} ({1})", sender.from_name, sender.from_email),
-                        Value = sender.id
-                    });
+            if (!IsSuccess(senders)) 
+                return availableSenders;
+
+            foreach (var sender in senders.data)
+                availableSenders.Add(new SelectListItem
+                {
+                    Text = string.Format("{0} ({1})", sender.from_name, sender.from_email),
+                    Value = sender.id
+                });
 
             return availableSenders;
         }
@@ -404,36 +403,36 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
 
             foreach (var sender in senders.data)
             {
-                if (sender.id == senderId)
+                if (sender.id != senderId) 
+                    continue;
+
+                //try to find existing email account by name and email
+                var emailAccount = emailAccountService.GetAllEmailAccounts().FirstOrDefault(x =>
+                    x.DisplayName == (string)sender.from_name && x.Email == (string)sender.from_email);
+                if (emailAccount != null)
+                    return emailAccount.Id;
+
+                //or create new one
+                var smtp = Manager.get_smtp_details();
+                if (!IsSuccess(smtp))
                 {
-                    //try to find existing email account by name and email
-                    var emailAccount = emailAccountService.GetAllEmailAccounts().FirstOrDefault(x =>
-                        x.DisplayName == (string)sender.from_name && x.Email == (string)sender.from_email);
-                    if (emailAccount != null)
-                        return emailAccount.Id;
-
-                    //or create new one
-                    var smtp = Manager.get_smtp_details();
-                    if (!IsSuccess(smtp))
-                    {
-                        error = (string)senders.message;
-                        return 0;
-                    }
-
-                    var newEmailAccount = new EmailAccount()
-                    {
-                        Host = smtp.data.relay_data.data.relay,
-                        Port = smtp.data.relay_data.data.port,
-                        Username = smtp.data.relay_data.data.username,
-                        Password = smtp.data.relay_data.data.password,
-                        EnableSsl = true,
-                        Email = sender.from_email,
-                        DisplayName = sender.from_name
-                    };
-                    emailAccountService.InsertEmailAccount(newEmailAccount);
-
-                    return newEmailAccount.Id;
+                    error = (string)senders.message;
+                    return 0;
                 }
+
+                var newEmailAccount = new EmailAccount
+                {
+                    Host = smtp.data.relay_data.data.relay,
+                    Port = smtp.data.relay_data.data.port,
+                    Username = smtp.data.relay_data.data.username,
+                    Password = smtp.data.relay_data.data.password,
+                    EnableSsl = true,
+                    Email = sender.from_email,
+                    DisplayName = sender.from_name
+                };
+                emailAccountService.InsertEmailAccount(newEmailAccount);
+
+                return newEmailAccount.Id;
             }
 
             return 0;
@@ -468,14 +467,14 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
 
             //and create their
             var notExistsAttributes = tokens.ToDictionary(x => x, x => "text");
-            if (notExistsAttributes.Count > 0)
-            {
-                notExistsAttributes.Add("ID", "id");
-                var newAttributeParams = new Dictionary<string, object> { { "type", "transactional" }, { "data", notExistsAttributes } };
-                var newAttributes = Manager.create_attribute(newAttributeParams);
-                if (!IsSuccess(newAttributes))
-                    error = (string)newAttributes.message;
-            }
+            if (notExistsAttributes.Count <= 0) 
+                return;
+
+            notExistsAttributes.Add("ID", "id");
+            var newAttributeParams = new Dictionary<string, object> { { "type", "transactional" }, { "data", notExistsAttributes } };
+            var newAttributes = Manager.create_attribute(newAttributeParams);
+            if (!IsSuccess(newAttributes))
+                error = (string)newAttributes.message;
         }
 
         /// <summary>
@@ -500,24 +499,24 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
             }
 
             //or create new one
-            if (emailAccount != null)
+            if (emailAccount == null) 
+                return 0;
+
+            //the original body and subject of the email template are the same as that of the message template in nopCommerce
+            var body = Regex.Replace(message.Body, "(%[^\\%]*.%)", x => x.ToString().Replace(".", "_").Replace("(s)", "-s-").ToUpperInvariant());
+            var subject = Regex.Replace(message.Subject, "(%[^\\%]*.%)", x => x.ToString().Replace(".", "_").Replace("(s)", "-s-").ToUpperInvariant());
+            var newTemplateParams = new Dictionary<string, object>
             {
-                //the original body and subject of the email template are the same as that of the message template in nopCommerce
-                var body = Regex.Replace(message.Body, "(%[^\\%]*.%)", x => x.ToString().Replace(".", "_").Replace("(s)", "-s-").ToUpperInvariant());
-                var subject = Regex.Replace(message.Subject, "(%[^\\%]*.%)", x => x.ToString().Replace(".", "_").Replace("(s)", "-s-").ToUpperInvariant());
-                var newTemplateParams = new Dictionary<string, object>
-                        {
-                            { "from_name", emailAccount.DisplayName },
-                            { "from_email", emailAccount.Email },
-                            { "template_name", message.Name },
-                            { "subject", subject },
-                            { "html_content", body },
-                            { "status", 1 }
-                        };
-                var newTemplate = Manager.create_template(newTemplateParams);
-                if (IsSuccess(newTemplate))
-                    return newTemplate.data.id;
-            }
+                { "from_name", emailAccount.DisplayName },
+                { "from_email", emailAccount.Email },
+                { "template_name", message.Name },
+                { "subject", subject },
+                { "html_content", body },
+                { "status", 1 }
+            };
+            var newTemplate = Manager.create_template(newTemplateParams);
+            if (IsSuccess(newTemplate))
+                return newTemplate.data.id;
 
             return 0;
         }

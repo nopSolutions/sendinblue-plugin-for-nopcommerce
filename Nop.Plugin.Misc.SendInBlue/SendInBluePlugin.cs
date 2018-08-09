@@ -25,6 +25,7 @@ namespace Nop.Plugin.Misc.SendInBlue
         private readonly IStoreService _storeService;
         private readonly SendInBlueEmailManager _sendInBlueEmailManager;
         private readonly IWebHelper _webHelper;
+        private readonly ILocalizationService _localizationService;
 
         #endregion
 
@@ -35,7 +36,8 @@ namespace Nop.Plugin.Misc.SendInBlue
             ISettingService settingService,
             IStoreService storeService,
             SendInBlueEmailManager sendInBlueEmailManager,
-            IWebHelper webHelper)
+            IWebHelper webHelper,
+            ILocalizationService localizationService)
         {
             this._emailAccountService = emailAccountService;
             this._scheduleTaskService = scheduleTaskService;
@@ -43,6 +45,7 @@ namespace Nop.Plugin.Misc.SendInBlue
             this._storeService = storeService;
             this._sendInBlueEmailManager = sendInBlueEmailManager;
             this._webHelper = webHelper;
+            this._localizationService = localizationService;
         }
 
         #endregion
@@ -89,51 +92,51 @@ namespace Nop.Plugin.Misc.SendInBlue
                 {
                     Name = "SendInBlue synchronization",
                     Seconds = 10800,
-                    Type = "Nop.Plugin.Misc.SendInBlue.Services.SendInBlueSynchronizationTask, Nop.Plugin.Misc.SendInBlue",
+                    Type = "Nop.Plugin.Misc.SendInBlue.Services.SendInBlueSynchronizationTask, Nop.Plugin.Misc.SendInBlue"
                 });
             }
 
             //locales
-            this.AddOrUpdatePluginLocaleResource("Plugins.Misc.SendInBlue.AccountInfo", "Account information");
-            this.AddOrUpdatePluginLocaleResource("Plugins.Misc.SendInBlue.ActivateSMTP", "If SMTP status is disabled, you need activate your SendInBlue SMTP account as described at https://resources.sendinblue.com/en/activate_smtp_account/");
-            this.AddOrUpdatePluginLocaleResource("Plugins.Misc.SendInBlue.AddNewSMSNotification", "Add new SMS notification");
-            this.AddOrUpdatePluginLocaleResource("Plugins.Misc.SendInBlue.AutoSyncRestart", "If synchronization task parameters has been changed, please restart the application");
-            this.AddOrUpdatePluginLocaleResource("Plugins.Misc.SendInBlue.BillingAddressPhone", "Billing address phone number");
-            this.AddOrUpdatePluginLocaleResource("Plugins.Misc.SendInBlue.CustomerPhone", "Customer phone number");
-            this.AddOrUpdatePluginLocaleResource("Plugins.Misc.SendInBlue.EditTemplate", "Edit template");
-            this.AddOrUpdatePluginLocaleResource("Plugins.Misc.SendInBlue.General", "General");
-            this.AddOrUpdatePluginLocaleResource("Plugins.Misc.SendInBlue.ImportProcess", "Your import is in process");
-            this.AddOrUpdatePluginLocaleResource("Plugins.Misc.SendInBlue.ManualSync", "Manual synchronization");
-            this.AddOrUpdatePluginLocaleResource("Plugins.Misc.SendInBlue.MyPhone", "Your phone number");
-            this.AddOrUpdatePluginLocaleResource("Plugins.Misc.SendInBlue.PhoneType", "Type of phone number");
-            this.AddOrUpdatePluginLocaleResource("Plugins.Misc.SendInBlue.SendInBlueTemplate", "SendInBlue email template");
-            this.AddOrUpdatePluginLocaleResource("Plugins.Misc.SendInBlue.SMS", "SMS");
-            this.AddOrUpdatePluginLocaleResource("Plugins.Misc.SendInBlue.SMSActive", "Is SMS active");
-            this.AddOrUpdatePluginLocaleResource("Plugins.Misc.SendInBlue.SMSText", "Text");
-            this.AddOrUpdatePluginLocaleResource("Plugins.Misc.SendInBlue.StandardTemplate", "NopCommerce message template");
-            this.AddOrUpdatePluginLocaleResource("Plugins.Misc.SendInBlue.Synchronization", "Synchronization");
-            this.AddOrUpdatePluginLocaleResource("Plugins.Misc.SendInBlue.TemplateType", "Template type");
-            this.AddOrUpdatePluginLocaleResource("Plugins.Misc.SendInBlue.Transactional", "Transactional emails");
-            this.AddOrUpdatePluginLocaleResource("Plugins.Misc.SendInBlue.Fields.ApiKey", "API key");
-            this.AddOrUpdatePluginLocaleResource("Plugins.Misc.SendInBlue.Fields.ApiKey.Hint", "Input your SendInBlue account API key.");
-            this.AddOrUpdatePluginLocaleResource("Plugins.Misc.SendInBlue.Fields.AutoSync", "Auto synchronization");
-            this.AddOrUpdatePluginLocaleResource("Plugins.Misc.SendInBlue.Fields.AutoSync.Hint", "Use auto synchronization task.");
-            this.AddOrUpdatePluginLocaleResource("Plugins.Misc.SendInBlue.Fields.AutoSyncEachMinutes", "Period (minutes)");
-            this.AddOrUpdatePluginLocaleResource("Plugins.Misc.SendInBlue.Fields.AutoSyncEachMinutes.Hint", "Input auto synchronization task period (minutes).");
-            this.AddOrUpdatePluginLocaleResource("Plugins.Misc.SendInBlue.Fields.List", "List");
-            this.AddOrUpdatePluginLocaleResource("Plugins.Misc.SendInBlue.Fields.List.Hint", "Choose list of users for the synchronization.");
-            this.AddOrUpdatePluginLocaleResource("Plugins.Misc.SendInBlue.Fields.MyPhoneNumber", "Your phone number");
-            this.AddOrUpdatePluginLocaleResource("Plugins.Misc.SendInBlue.Fields.MyPhoneNumber.Hint", "Input your phone number for SMS notifications.");
-            this.AddOrUpdatePluginLocaleResource("Plugins.Misc.SendInBlue.Fields.NewListName", "New list name");
-            this.AddOrUpdatePluginLocaleResource("Plugins.Misc.SendInBlue.Fields.NewListName.Hint", "Input name for new list of users.");
-            this.AddOrUpdatePluginLocaleResource("Plugins.Misc.SendInBlue.Fields.SMSFrom", "Send SMS from");
-            this.AddOrUpdatePluginLocaleResource("Plugins.Misc.SendInBlue.Fields.SMSFrom.Hint", "Input the name of the sender. The number of characters is limited to 11 (alphanumeric format).");
-            this.AddOrUpdatePluginLocaleResource("Plugins.Misc.SendInBlue.Fields.SMTPSender", "Send emails from");
-            this.AddOrUpdatePluginLocaleResource("Plugins.Misc.SendInBlue.Fields.SMTPSender.Hint", "Choose sender of your transactional emails.");
-            this.AddOrUpdatePluginLocaleResource("Plugins.Misc.SendInBlue.Fields.UseSendInBlueSMTP", "Use SendInBlue for notifications");
-            this.AddOrUpdatePluginLocaleResource("Plugins.Misc.SendInBlue.Fields.UseSendInBlueSMTP.Hint", "Check for using SendInBlue SMTP for sending transactional emails.");
-            this.AddOrUpdatePluginLocaleResource("Plugins.Misc.SendInBlue.Fields.UseSMS", "Use SMS notifications");
-            this.AddOrUpdatePluginLocaleResource("Plugins.Misc.SendInBlue.Fields.UseSMS.Hint", "Check for sending transactional SMS.");
+            _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Misc.SendInBlue.AccountInfo", "Account information");
+            _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Misc.SendInBlue.ActivateSMTP", "If SMTP status is disabled, you need activate your SendInBlue SMTP account as described at https://resources.sendinblue.com/en/activate_smtp_account/");
+            _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Misc.SendInBlue.AddNewSMSNotification", "Add new SMS notification");
+            _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Misc.SendInBlue.AutoSyncRestart", "If synchronization task parameters has been changed, please restart the application");
+            _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Misc.SendInBlue.BillingAddressPhone", "Billing address phone number");
+            _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Misc.SendInBlue.CustomerPhone", "Customer phone number");
+            _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Misc.SendInBlue.EditTemplate", "Edit template");
+            _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Misc.SendInBlue.General", "General");
+            _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Misc.SendInBlue.ImportProcess", "Your import is in process");
+            _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Misc.SendInBlue.ManualSync", "Manual synchronization");
+            _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Misc.SendInBlue.MyPhone", "Your phone number");
+            _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Misc.SendInBlue.PhoneType", "Type of phone number");
+            _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Misc.SendInBlue.SendInBlueTemplate", "SendInBlue email template");
+            _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Misc.SendInBlue.SMS", "SMS");
+            _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Misc.SendInBlue.SMSActive", "Is SMS active");
+            _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Misc.SendInBlue.SMSText", "Text");
+            _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Misc.SendInBlue.StandardTemplate", "NopCommerce message template");
+            _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Misc.SendInBlue.Synchronization", "Synchronization");
+            _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Misc.SendInBlue.TemplateType", "Template type");
+            _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Misc.SendInBlue.Transactional", "Transactional emails");
+            _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Misc.SendInBlue.Fields.ApiKey", "API key");
+            _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Misc.SendInBlue.Fields.ApiKey.Hint", "Input your SendInBlue account API key.");
+            _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Misc.SendInBlue.Fields.AutoSync", "Auto synchronization");
+            _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Misc.SendInBlue.Fields.AutoSync.Hint", "Use auto synchronization task.");
+            _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Misc.SendInBlue.Fields.AutoSyncEachMinutes", "Period (minutes)");
+            _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Misc.SendInBlue.Fields.AutoSyncEachMinutes.Hint", "Input auto synchronization task period (minutes).");
+            _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Misc.SendInBlue.Fields.List", "List");
+            _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Misc.SendInBlue.Fields.List.Hint", "Choose list of users for the synchronization.");
+            _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Misc.SendInBlue.Fields.MyPhoneNumber", "Your phone number");
+            _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Misc.SendInBlue.Fields.MyPhoneNumber.Hint", "Input your phone number for SMS notifications.");
+            _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Misc.SendInBlue.Fields.NewListName", "New list name");
+            _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Misc.SendInBlue.Fields.NewListName.Hint", "Input name for new list of users.");
+            _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Misc.SendInBlue.Fields.SMSFrom", "Send SMS from");
+            _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Misc.SendInBlue.Fields.SMSFrom.Hint", "Input the name of the sender. The number of characters is limited to 11 (alphanumeric format).");
+            _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Misc.SendInBlue.Fields.SMTPSender", "Send emails from");
+            _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Misc.SendInBlue.Fields.SMTPSender.Hint", "Choose sender of your transactional emails.");
+            _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Misc.SendInBlue.Fields.UseSendInBlueSMTP", "Use SendInBlue for notifications");
+            _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Misc.SendInBlue.Fields.UseSendInBlueSMTP.Hint", "Check for using SendInBlue SMTP for sending transactional emails.");
+            _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Misc.SendInBlue.Fields.UseSMS", "Use SMS notifications");
+            _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Misc.SendInBlue.Fields.UseSMS.Hint", "Check for sending transactional SMS.");
             
             base.Install();
         }
@@ -162,46 +165,46 @@ namespace Nop.Plugin.Misc.SendInBlue
                 _scheduleTaskService.DeleteTask(task);
 
             //locales
-            this.DeletePluginLocaleResource("Plugins.Misc.SendInBlue.AccountInfo");
-            this.DeletePluginLocaleResource("Plugins.Misc.SendInBlue.ActivateSMTP");
-            this.DeletePluginLocaleResource("Plugins.Misc.SendInBlue.AddNewSMSNotification");
-            this.DeletePluginLocaleResource("Plugins.Misc.SendInBlue.AutoSyncRestart");
-            this.DeletePluginLocaleResource("Plugins.Misc.SendInBlue.BillingAddressPhone");
-            this.DeletePluginLocaleResource("Plugins.Misc.SendInBlue.CustomerPhone");
-            this.DeletePluginLocaleResource("Plugins.Misc.SendInBlue.EditTemplate");
-            this.DeletePluginLocaleResource("Plugins.Misc.SendInBlue.General");
-            this.DeletePluginLocaleResource("Plugins.Misc.SendInBlue.ImportProcess");
-            this.DeletePluginLocaleResource("Plugins.Misc.SendInBlue.ManualSync");
-            this.DeletePluginLocaleResource("Plugins.Misc.SendInBlue.MyPhone");
-            this.DeletePluginLocaleResource("Plugins.Misc.SendInBlue.PhoneType");
-            this.DeletePluginLocaleResource("Plugins.Misc.SendInBlue.SendInBlueTemplate");
-            this.DeletePluginLocaleResource("Plugins.Misc.SendInBlue.SMS");
-            this.DeletePluginLocaleResource("Plugins.Misc.SendInBlue.SMSActive");
-            this.DeletePluginLocaleResource("Plugins.Misc.SendInBlue.SMSText");
-            this.DeletePluginLocaleResource("Plugins.Misc.SendInBlue.StandardTemplate");
-            this.DeletePluginLocaleResource("Plugins.Misc.SendInBlue.Synchronization");
-            this.DeletePluginLocaleResource("Plugins.Misc.SendInBlue.TemplateType");
-            this.DeletePluginLocaleResource("Plugins.Misc.SendInBlue.Transactional");
-            this.DeletePluginLocaleResource("Plugins.Misc.SendInBlue.Fields.ApiKey");
-            this.DeletePluginLocaleResource("Plugins.Misc.SendInBlue.Fields.ApiKey.Hint");
-            this.DeletePluginLocaleResource("Plugins.Misc.SendInBlue.Fields.AutoSync");
-            this.DeletePluginLocaleResource("Plugins.Misc.SendInBlue.Fields.AutoSync.Hint");
-            this.DeletePluginLocaleResource("Plugins.Misc.SendInBlue.Fields.AutoSyncEachMinutes");
-            this.DeletePluginLocaleResource("Plugins.Misc.SendInBlue.Fields.AutoSyncEachMinutes.Hint");
-            this.DeletePluginLocaleResource("Plugins.Misc.SendInBlue.Fields.List");
-            this.DeletePluginLocaleResource("Plugins.Misc.SendInBlue.Fields.List.Hint");
-            this.DeletePluginLocaleResource("Plugins.Misc.SendInBlue.Fields.MyPhoneNumber");
-            this.DeletePluginLocaleResource("Plugins.Misc.SendInBlue.Fields.MyPhoneNumber.Hint");
-            this.DeletePluginLocaleResource("Plugins.Misc.SendInBlue.Fields.NewListName");
-            this.DeletePluginLocaleResource("Plugins.Misc.SendInBlue.Fields.NewListName.Hint");
-            this.DeletePluginLocaleResource("Plugins.Misc.SendInBlue.Fields.SMSFrom");
-            this.DeletePluginLocaleResource("Plugins.Misc.SendInBlue.Fields.SMSFrom.Hint");
-            this.DeletePluginLocaleResource("Plugins.Misc.SendInBlue.Fields.SMTPSender");
-            this.DeletePluginLocaleResource("Plugins.Misc.SendInBlue.Fields.SMTPSender.Hint");
-            this.DeletePluginLocaleResource("Plugins.Misc.SendInBlue.Fields.UseSendInBlueSMTP");
-            this.DeletePluginLocaleResource("Plugins.Misc.SendInBlue.Fields.UseSendInBlueSMTP.Hint");
-            this.DeletePluginLocaleResource("Plugins.Misc.SendInBlue.Fields.UseSMS");
-            this.DeletePluginLocaleResource("Plugins.Misc.SendInBlue.Fields.UseSMS.Hint");
+            _localizationService.DeletePluginLocaleResource("Plugins.Misc.SendInBlue.AccountInfo");
+            _localizationService.DeletePluginLocaleResource("Plugins.Misc.SendInBlue.ActivateSMTP");
+            _localizationService.DeletePluginLocaleResource("Plugins.Misc.SendInBlue.AddNewSMSNotification");
+            _localizationService.DeletePluginLocaleResource("Plugins.Misc.SendInBlue.AutoSyncRestart");
+            _localizationService.DeletePluginLocaleResource("Plugins.Misc.SendInBlue.BillingAddressPhone");
+            _localizationService.DeletePluginLocaleResource("Plugins.Misc.SendInBlue.CustomerPhone");
+            _localizationService.DeletePluginLocaleResource("Plugins.Misc.SendInBlue.EditTemplate");
+            _localizationService.DeletePluginLocaleResource("Plugins.Misc.SendInBlue.General");
+            _localizationService.DeletePluginLocaleResource("Plugins.Misc.SendInBlue.ImportProcess");
+            _localizationService.DeletePluginLocaleResource("Plugins.Misc.SendInBlue.ManualSync");
+            _localizationService.DeletePluginLocaleResource("Plugins.Misc.SendInBlue.MyPhone");
+            _localizationService.DeletePluginLocaleResource("Plugins.Misc.SendInBlue.PhoneType");
+            _localizationService.DeletePluginLocaleResource("Plugins.Misc.SendInBlue.SendInBlueTemplate");
+            _localizationService.DeletePluginLocaleResource("Plugins.Misc.SendInBlue.SMS");
+            _localizationService.DeletePluginLocaleResource("Plugins.Misc.SendInBlue.SMSActive");
+            _localizationService.DeletePluginLocaleResource("Plugins.Misc.SendInBlue.SMSText");
+            _localizationService.DeletePluginLocaleResource("Plugins.Misc.SendInBlue.StandardTemplate");
+            _localizationService.DeletePluginLocaleResource("Plugins.Misc.SendInBlue.Synchronization");
+            _localizationService.DeletePluginLocaleResource("Plugins.Misc.SendInBlue.TemplateType");
+            _localizationService.DeletePluginLocaleResource("Plugins.Misc.SendInBlue.Transactional");
+            _localizationService.DeletePluginLocaleResource("Plugins.Misc.SendInBlue.Fields.ApiKey");
+            _localizationService.DeletePluginLocaleResource("Plugins.Misc.SendInBlue.Fields.ApiKey.Hint");
+            _localizationService.DeletePluginLocaleResource("Plugins.Misc.SendInBlue.Fields.AutoSync");
+            _localizationService.DeletePluginLocaleResource("Plugins.Misc.SendInBlue.Fields.AutoSync.Hint");
+            _localizationService.DeletePluginLocaleResource("Plugins.Misc.SendInBlue.Fields.AutoSyncEachMinutes");
+            _localizationService.DeletePluginLocaleResource("Plugins.Misc.SendInBlue.Fields.AutoSyncEachMinutes.Hint");
+            _localizationService.DeletePluginLocaleResource("Plugins.Misc.SendInBlue.Fields.List");
+            _localizationService.DeletePluginLocaleResource("Plugins.Misc.SendInBlue.Fields.List.Hint");
+            _localizationService.DeletePluginLocaleResource("Plugins.Misc.SendInBlue.Fields.MyPhoneNumber");
+            _localizationService.DeletePluginLocaleResource("Plugins.Misc.SendInBlue.Fields.MyPhoneNumber.Hint");
+            _localizationService.DeletePluginLocaleResource("Plugins.Misc.SendInBlue.Fields.NewListName");
+            _localizationService.DeletePluginLocaleResource("Plugins.Misc.SendInBlue.Fields.NewListName.Hint");
+            _localizationService.DeletePluginLocaleResource("Plugins.Misc.SendInBlue.Fields.SMSFrom");
+            _localizationService.DeletePluginLocaleResource("Plugins.Misc.SendInBlue.Fields.SMSFrom.Hint");
+            _localizationService.DeletePluginLocaleResource("Plugins.Misc.SendInBlue.Fields.SMTPSender");
+            _localizationService.DeletePluginLocaleResource("Plugins.Misc.SendInBlue.Fields.SMTPSender.Hint");
+            _localizationService.DeletePluginLocaleResource("Plugins.Misc.SendInBlue.Fields.UseSendInBlueSMTP");
+            _localizationService.DeletePluginLocaleResource("Plugins.Misc.SendInBlue.Fields.UseSendInBlueSMTP.Hint");
+            _localizationService.DeletePluginLocaleResource("Plugins.Misc.SendInBlue.Fields.UseSMS");
+            _localizationService.DeletePluginLocaleResource("Plugins.Misc.SendInBlue.Fields.UseSMS.Hint");
             
             base.Uninstall();
         }

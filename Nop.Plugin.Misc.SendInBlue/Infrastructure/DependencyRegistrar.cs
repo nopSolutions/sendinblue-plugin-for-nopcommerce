@@ -25,9 +25,6 @@ namespace Nop.Plugin.Misc.SendInBlue.Infrastructure
         /// <summary>
         /// Gets the order.
         /// </summary>
-        public int Order
-        {
-            get { return 1; }
-        }
+        public int Order => 1;
     }
 }

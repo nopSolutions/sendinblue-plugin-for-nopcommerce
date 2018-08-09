@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using Nop.Core;
 using Nop.Core.Domain.Messages;
+using Nop.Core.Infrastructure;
 using Nop.Services.Configuration;
 using Nop.Services.Media;
 using Nop.Services.Messages;
@@ -23,7 +24,8 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
 
         public SendInBlueEmailSender(IDownloadService downloadService,
             ISettingService settingService,
-            IStoreContext storeContext) : base(downloadService)
+            IStoreContext storeContext,
+            INopFileProvider fileProvider) : base(downloadService, fileProvider)
         {
             this._settingService = settingService;
             this._storeContext = storeContext;

@@ -1,4 +1,4 @@
-﻿using Nop.Core.Plugins;
+﻿using Nop.Services.Plugins;
 using Nop.Services.Tasks;
 
 namespace Nop.Plugin.Misc.SendInBlue.Services

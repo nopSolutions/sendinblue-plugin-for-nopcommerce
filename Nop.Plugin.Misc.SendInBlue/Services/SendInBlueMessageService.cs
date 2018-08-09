@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using Nop.Core;
 using Nop.Core.Domain.Blogs;
 using Nop.Core.Domain.Catalog;
@@ -11,6 +12,7 @@ using Nop.Core.Domain.News;
 using Nop.Core.Domain.Orders;
 using Nop.Core.Domain.Shipping;
 using Nop.Core.Domain.Vendors;
+using Nop.Services.Affiliates;
 using Nop.Services.Common;
 using Nop.Services.Configuration;
 using Nop.Services.Customers;
@@ -39,13 +41,18 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
         private readonly IStoreService _storeService;
         private readonly ITokenizer _tokenizer;
         private readonly SendInBlueEmailManager _sendInBlueEmailManager;
+        private readonly ICustomerService _currentCustomerService;
 
         #endregion
 
         #region Ctor
 
         public SendInBlueMessageService(
+            CommonSettings commonSettings,
             IMessageTemplateService messageTemplateService,
+            IAffiliateService affiliateService,
+            ICustomerService customerService,
+            ILocalizationService localizationService,
             IQueuedEmailService queuedEmailService,
             ILanguageService languageService,
             ITokenizer tokenizer,
@@ -57,19 +64,21 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
             IEventPublisher eventPublisher,
             ISettingService settingService,
             IGenericAttributeService genericAttributeService,
-            SendInBlueEmailManager sendInBlueEmailManager,
-            CommonSettings commonSettings)
-            : base(messageTemplateService,
-                queuedEmailService,
-                languageService,
-                tokenizer,
-                emailAccountService,
-                messageTokenProvider,
-                storeService,
-                storeContext,
-                commonSettings,
+            SendInBlueEmailManager sendInBlueEmailManager)
+            : base(commonSettings,
                 emailAccountSettings,
-                eventPublisher)
+                affiliateService,
+                customerService,
+                emailAccountService,
+                eventPublisher,
+                languageService,
+                localizationService,
+                messageTemplateService,
+                messageTokenProvider,
+                queuedEmailService,
+                storeContext,
+                storeService,
+                tokenizer)
         {
             this._emailAccountService = emailAccountService;
             this._eventPublisher = eventPublisher;
@@ -82,6 +91,7 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
             this._storeService = storeService;
             this._tokenizer = tokenizer;
             this._sendInBlueEmailManager = sendInBlueEmailManager;
+            this._currentCustomerService = customerService;
         }
 
         #endregion
@@ -100,7 +110,7 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
         /// <param name="attachmentFilePath">Attachment file path</param>
         /// <param name="attachmentFileName">Attachment file name. If specified, then this file name will be sent to a recipient. Otherwise, "AttachmentFilePath" name will be used.</param>
         /// <returns>Queued email identifier</returns>
-        protected int SendNotification(int storeId, int languageId, string messageName, TokenModel tokenModel,
+        protected IList<int> SendNotification(int storeId, int languageId, string messageName, TokenModel tokenModel,
             string toEmail = null, string toName = null, string attachmentFilePath = null, string attachmentFileName = null)
         {
             var store = storeId > 0 ? _storeService.GetStoreById(storeId) ?? _storeContext.CurrentStore : _storeContext.CurrentStore;
@@ -108,147 +118,160 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
 
             languageId = EnsureLanguageIsActive(languageId, store.Id);
 
-            var messageTemplate = _messageTemplateService.GetMessageTemplateByName(messageName, store.Id);
-            if (messageTemplate == null)
-                return 0;
+            var messageTemplates = _messageTemplateService.GetMessageTemplatesByName(messageName, store.Id)
+                .Where(messageTemplate => messageTemplate.IsActive);
 
-            //ensure that email or sms message is active
-            var useSms = sendInBlueSettings.UseSMS && messageTemplate.GetAttribute<bool>("UseSMS", _genericAttributeService);
-            if (!useSms && !messageTemplate.IsActive)
-                return 0;
-
-            #region Email account
-
-            //get email account from settings
-            EmailAccount emailAccount = null;
-            if (sendInBlueSettings.UseSendInBlueSMTP)
-                emailAccount = _emailAccountService.GetEmailAccountById(sendInBlueSettings.SendInBlueEmailAccountId);
-            if (emailAccount == null)
-                emailAccount = GetEmailAccountOfMessageTemplate(messageTemplate, languageId);
-
-            #endregion
-
-            #region Tokens
-
-            //add tokens
-            var tokens = tokenModel.Tokens;
-            _messageTokenProvider.AddStoreTokens(tokens, store, emailAccount);
-            if (tokenModel.Customer != null)
-                _messageTokenProvider.AddCustomerTokens(tokens, tokenModel.Customer);
-            if (tokenModel.Order != null)
-                _messageTokenProvider.AddOrderTokens(tokens, tokenModel.Order, languageId);
-            if (tokenModel.Shipment != null)
-                _messageTokenProvider.AddShipmentTokens(tokens, tokenModel.Shipment, languageId);
-            if (tokenModel.Order != null)
-                _messageTokenProvider.AddOrderRefundedTokens(tokens, tokenModel.Order, tokenModel.RefundedAmount);
-            if (tokenModel.OrderNote != null)
-                _messageTokenProvider.AddOrderNoteTokens(tokens, tokenModel.OrderNote);
-            if (tokenModel.RecurringPayment != null)
-                _messageTokenProvider.AddRecurringPaymentTokens(tokens, tokenModel.RecurringPayment);
-            if (tokenModel.NewsLetterSubscription != null)
-                _messageTokenProvider.AddNewsLetterSubscriptionTokens(tokens, tokenModel.NewsLetterSubscription);
-            if (tokenModel.ReturnRequest != null)
-                _messageTokenProvider.AddReturnRequestTokens(tokens, tokenModel.ReturnRequest, tokenModel.OrderItem);
-            if (tokenModel.Forum != null)
-                _messageTokenProvider.AddForumTokens(tokens, tokenModel.Forum);
-            if (tokenModel.ForumTopic != null)
-                _messageTokenProvider.AddForumTopicTokens(tokens, tokenModel.ForumTopic);
-            if (tokenModel.ForumPost != null)
+            return messageTemplates.Select(messageTemplate =>
             {
-                _messageTokenProvider.AddForumPostTokens(tokens, tokenModel.ForumPost);
-                _messageTokenProvider.AddForumTopicTokens(tokens, tokenModel.ForumTopic, tokenModel.FriendlyForumTopicPageIndex, tokenModel.ForumPost.Id);
-            }
-            if (tokenModel.PrivateMessage != null)
-                _messageTokenProvider.AddPrivateMessageTokens(tokens, tokenModel.PrivateMessage);
-            if (tokenModel.Vendor != null)
-                _messageTokenProvider.AddVendorTokens(tokens, tokenModel.Vendor);
-            if (tokenModel.GiftCard != null)
-                _messageTokenProvider.AddGiftCardTokens(tokens, tokenModel.GiftCard);
-            if (tokenModel.ProductReview != null)
-                _messageTokenProvider.AddProductReviewTokens(tokens, tokenModel.ProductReview);
-            if (tokenModel.Product != null)
-                _messageTokenProvider.AddProductTokens(tokens, tokenModel.Product, languageId);
-            if (tokenModel.Combination != null)
-                _messageTokenProvider.AddAttributeCombinationTokens(tokens, tokenModel.Combination, languageId);
-            if (tokenModel.BlogComment != null)
-                _messageTokenProvider.AddBlogCommentTokens(tokens, tokenModel.BlogComment);
-            if (tokenModel.NewsComment != null)
-                _messageTokenProvider.AddNewsCommentTokens(tokens, tokenModel.NewsComment);
-            if (tokenModel.Subscription != null)
-                _messageTokenProvider.AddBackInStockTokens(tokens, tokenModel.Subscription);
+                //ensure that email or sms message is active
+                var useSms = sendInBlueSettings.UseSMS &&
+                             _genericAttributeService.GetAttribute<bool>(messageTemplate, "UseSMS");
+                if (!useSms && !messageTemplate.IsActive)
+                    return 0;
 
-            //event notification
-            _eventPublisher.MessageTokensAdded(messageTemplate, tokens);
+                #region Email account
 
-            #endregion
+                //get email account from settings
+                EmailAccount emailAccount = null;
+                if (sendInBlueSettings.UseSendInBlueSMTP)
+                    emailAccount =
+                        _emailAccountService.GetEmailAccountById(sendInBlueSettings.SendInBlueEmailAccountId);
+                if (emailAccount == null)
+                    emailAccount = GetEmailAccountOfMessageTemplate(messageTemplate, languageId);
 
-            #region SMS
+                #endregion
 
-            //send SMS
-            if (useSms)
-            {
-                //get text with replaced tokens
-                var text = messageTemplate.GetAttribute<string>("SMSText", _genericAttributeService);
-                if (!string.IsNullOrEmpty(text))
-                    text = _tokenizer.Replace(text, tokens, false);
+                #region Tokens
 
-                //get phone number
-                var phoneNumberTo = sendInBlueSettings.MyPhoneNumber;
-                switch (messageTemplate.GetAttribute<int>("PhoneTypeId", _genericAttributeService))
+                //add tokens
+                var tokens = tokenModel.Tokens;
+                _messageTokenProvider.AddStoreTokens(tokens, store, emailAccount);
+                if (tokenModel.Customer != null)
+                    _messageTokenProvider.AddCustomerTokens(tokens, tokenModel.Customer);
+                if (tokenModel.Order != null)
+                    _messageTokenProvider.AddOrderTokens(tokens, tokenModel.Order, languageId);
+                if (tokenModel.Shipment != null)
+                    _messageTokenProvider.AddShipmentTokens(tokens, tokenModel.Shipment, languageId);
+                if (tokenModel.Order != null)
+                    _messageTokenProvider.AddOrderRefundedTokens(tokens, tokenModel.Order, tokenModel.RefundedAmount);
+                if (tokenModel.OrderNote != null)
+                    _messageTokenProvider.AddOrderNoteTokens(tokens, tokenModel.OrderNote);
+                if (tokenModel.RecurringPayment != null)
+                    _messageTokenProvider.AddRecurringPaymentTokens(tokens, tokenModel.RecurringPayment);
+                if (tokenModel.NewsLetterSubscription != null)
+                    _messageTokenProvider.AddNewsLetterSubscriptionTokens(tokens, tokenModel.NewsLetterSubscription);
+                if (tokenModel.ReturnRequest != null)
+                    _messageTokenProvider.AddReturnRequestTokens(tokens, tokenModel.ReturnRequest,
+                        tokenModel.OrderItem);
+                if (tokenModel.Forum != null)
+                    _messageTokenProvider.AddForumTokens(tokens, tokenModel.Forum);
+                if (tokenModel.ForumTopic != null)
+                    _messageTokenProvider.AddForumTopicTokens(tokens, tokenModel.ForumTopic);
+                if (tokenModel.ForumPost != null)
                 {
-                    case 1:
-                        phoneNumberTo = tokenModel.Customer != null ? 
-                            tokenModel.Customer.GetAttribute<string>(SystemCustomerAttributeNames.Phone) : null;
-                        break;
-                    case 2:
-                        phoneNumberTo = tokenModel.BillingAddress != null ? tokenModel.BillingAddress.PhoneNumber : null;
-                        break;
-                    default:
-                        break;
+                    _messageTokenProvider.AddForumPostTokens(tokens, tokenModel.ForumPost);
+                    _messageTokenProvider.AddForumTopicTokens(tokens, tokenModel.ForumTopic,
+                        tokenModel.FriendlyForumTopicPageIndex, tokenModel.ForumPost.Id);
                 }
-                _sendInBlueEmailManager.SendSMS(phoneNumberTo, sendInBlueSettings.SMSFrom, text);
-            }
 
-            #endregion
+                if (tokenModel.PrivateMessage != null)
+                    _messageTokenProvider.AddPrivateMessageTokens(tokens, tokenModel.PrivateMessage);
+                if (tokenModel.Vendor != null)
+                    _messageTokenProvider.AddVendorTokens(tokens, tokenModel.Vendor);
+                if (tokenModel.GiftCard != null)
+                    _messageTokenProvider.AddGiftCardTokens(tokens, tokenModel.GiftCard);
+                if (tokenModel.ProductReview != null)
+                    _messageTokenProvider.AddProductReviewTokens(tokens, tokenModel.ProductReview);
+                if (tokenModel.Product != null)
+                    _messageTokenProvider.AddProductTokens(tokens, tokenModel.Product, languageId);
+                if (tokenModel.Combination != null)
+                    _messageTokenProvider.AddAttributeCombinationTokens(tokens, tokenModel.Combination, languageId);
+                if (tokenModel.BlogComment != null)
+                    _messageTokenProvider.AddBlogCommentTokens(tokens, tokenModel.BlogComment);
+                if (tokenModel.NewsComment != null)
+                    _messageTokenProvider.AddNewsCommentTokens(tokens, tokenModel.NewsComment);
+                if (tokenModel.Subscription != null)
+                    _messageTokenProvider.AddBackInStockTokens(tokens, tokenModel.Subscription);
 
-            #region Email
+                //event notification
+                _eventPublisher.MessageTokensAdded(messageTemplate, tokens);
 
-            if (!messageTemplate.IsActive)
-                return 0;
-                     
-            //use standard way for the sending emails
-            if (!sendInBlueSettings.UseSendInBlueSMTP || !messageTemplate.GetAttribute<bool>("SendInBlueTemplate", _genericAttributeService))
-                return base.SendNotification(messageTemplate, emailAccount, languageId, tokens,
-                    toEmail ?? emailAccount.Email, toName ?? emailAccount.DisplayName, attachmentFilePath, attachmentFileName);
+                #endregion
 
-            //or use SendInBlue service
-            //get message template 
-            var email = _sendInBlueEmailManager.GetQueuedEmailFromTemplate (messageTemplate.GetAttribute<int>("TemplateId", _genericAttributeService));
-            if (email == null)
-                return 0;
+                #region SMS
 
-            //replace tokens in the body and in the subject
-            if (!string.IsNullOrEmpty(email.Subject))
-                email.Subject = _tokenizer.Replace(email.Subject, tokens, false);
-            if (!string.IsNullOrEmpty(email.Body))
-                email.Body = _tokenizer.Replace(email.Body, tokens, true);
+                //send SMS
+                if (useSms)
+                {
+                    //get text with replaced tokens
+                    var text = _genericAttributeService.GetAttribute<string>(messageTemplate, "SMSText");
+                    if (!string.IsNullOrEmpty(text))
+                        text = _tokenizer.Replace(text, tokens, false);
 
-            //set email parameters
-            email.Priority = QueuedEmailPriority.High;
-            email.To = toEmail ?? emailAccount.Email;
-            email.ToName = toName ?? emailAccount.DisplayName;
-            email.CC = string.Empty;
-            email.Bcc = messageTemplate.BccEmailAddresses;
-            email.AttachmentFilePath = attachmentFilePath;
-            email.AttachmentFileName = attachmentFileName;
-            email.AttachedDownloadId = messageTemplate.AttachedDownloadId;
-            email.CreatedOnUtc = DateTime.UtcNow;
-            email.EmailAccountId = emailAccount.Id;
-            _queuedEmailService.InsertQueuedEmail(email);
+                    //get phone number
+                    var phoneNumberTo = sendInBlueSettings.MyPhoneNumber;
+                    switch (_genericAttributeService.GetAttribute<int>(messageTemplate, "PhoneTypeId"))
+                    {
+                        case 1:
+                            phoneNumberTo = tokenModel.Customer != null
+                                ? _genericAttributeService.GetAttribute<string>(tokenModel.Customer,
+                                    NopCustomerDefaults.PhoneAttribute)
+                                : null;
+                            break;
+                        case 2:
+                            phoneNumberTo = tokenModel.BillingAddress?.PhoneNumber;
+                            break;
+                        default:
+                            break;
+                    }
 
-            return email.Id;
+                    _sendInBlueEmailManager.SendSMS(phoneNumberTo, sendInBlueSettings.SMSFrom, text);
+                }
 
-            #endregion
+                #endregion
+
+                #region Email
+
+                if (!messageTemplate.IsActive)
+                    return 0;
+
+                //use standard way for the sending emails
+                if (!sendInBlueSettings.UseSendInBlueSMTP ||
+                    !_genericAttributeService.GetAttribute<bool>(messageTemplate, "SendInBlueTemplate"))
+                    return base.SendNotification(messageTemplate, emailAccount, languageId, tokens,
+                        toEmail ?? emailAccount.Email, toName ?? emailAccount.DisplayName, attachmentFilePath,
+                        attachmentFileName);
+
+                //or use SendInBlue service
+                //get message template 
+                var email = _sendInBlueEmailManager.GetQueuedEmailFromTemplate(
+                    _genericAttributeService.GetAttribute<int>(messageTemplate, "TemplateId"));
+                if (email == null)
+                    return 0;
+
+                //replace tokens in the body and in the subject
+                if (!string.IsNullOrEmpty(email.Subject))
+                    email.Subject = _tokenizer.Replace(email.Subject, tokens, false);
+                if (!string.IsNullOrEmpty(email.Body))
+                    email.Body = _tokenizer.Replace(email.Body, tokens, true);
+
+                //set email parameters
+                email.Priority = QueuedEmailPriority.High;
+                email.To = toEmail ?? emailAccount.Email;
+                email.ToName = toName ?? emailAccount.DisplayName;
+                email.CC = string.Empty;
+                email.Bcc = messageTemplate.BccEmailAddresses;
+                email.AttachmentFilePath = attachmentFilePath;
+                email.AttachmentFileName = attachmentFileName;
+                email.AttachedDownloadId = messageTemplate.AttachedDownloadId;
+                email.CreatedOnUtc = DateTime.UtcNow;
+                email.EmailAccountId = emailAccount.Id;
+                _queuedEmailService.InsertQueuedEmail(email);
+
+                return email.Id;
+
+                #endregion
+            }).Where(id => id != 0).ToList();
         }
 
         #endregion
@@ -263,7 +286,7 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
         /// <param name="customer">Customer instance</param>
         /// <param name="languageId">Message language identifier</param>
         /// <returns>Queued email identifier</returns>
-        public override int SendCustomerRegisteredNotificationMessage(Customer customer, int languageId)
+        public override IList<int> SendCustomerRegisteredNotificationMessage(Customer customer, int languageId)
         {
             return SendNotification(0, languageId, "NewCustomer.Notification",
                 new TokenModel { Customer = customer });
@@ -275,11 +298,11 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
         /// <param name="customer">Customer instance</param>
         /// <param name="languageId">Message language identifier</param>
         /// <returns>Queued email identifier</returns>
-        public override int SendCustomerWelcomeMessage(Customer customer, int languageId)
+        public override IList<int> SendCustomerWelcomeMessage(Customer customer, int languageId)
         {
             return SendNotification(0, languageId, "Customer.WelcomeMessage",
                 new TokenModel { Customer = customer, BillingAddress = customer.BillingAddress },
-                customer.Email, customer.GetFullName());
+                customer.Email, _currentCustomerService.GetCustomerFullName(customer));
         }
 
         /// <summary>
@@ -288,11 +311,11 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
         /// <param name="customer">Customer instance</param>
         /// <param name="languageId">Message language identifier</param>
         /// <returns>Queued email identifier</returns>
-        public override int SendCustomerEmailValidationMessage(Customer customer, int languageId)
+        public override IList<int> SendCustomerEmailValidationMessage(Customer customer, int languageId)
         {
             return SendNotification(0, languageId, "Customer.EmailValidationMessage",
                 new TokenModel { Customer = customer, BillingAddress = customer.BillingAddress },
-                customer.Email, customer.GetFullName());
+                customer.Email, _currentCustomerService.GetCustomerFullName(customer));
         }
 
         /// <summary>
@@ -301,11 +324,11 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
         /// <param name="customer">Customer instance</param>
         /// <param name="languageId">Message language identifier</param>
         /// <returns>Queued email identifier</returns>
-        public override int SendCustomerPasswordRecoveryMessage(Customer customer, int languageId)
+        public override IList<int> SendCustomerPasswordRecoveryMessage(Customer customer, int languageId)
         {
             return SendNotification(0, languageId, "Customer.PasswordRecovery",
                 new TokenModel { Customer = customer, BillingAddress = customer.BillingAddress },
-                customer.Email, customer.GetFullName());
+                customer.Email, _currentCustomerService.GetCustomerFullName(customer));
         }
 
         #endregion
@@ -319,7 +342,7 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
         /// <param name="vendor">Vendor instance</param>
         /// <param name="languageId">Message language identifier</param>
         /// <returns>Queued email identifier</returns>
-        public override int SendOrderPlacedVendorNotification(Order order, Vendor vendor, int languageId)
+        public override IList<int> SendOrderPlacedVendorNotification(Order order, Vendor vendor, int languageId)
         {
             return SendNotification(order.StoreId, languageId, "OrderPlaced.VendorNotification",
                 new TokenModel { Customer = order.Customer, Order = order },
@@ -332,7 +355,7 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
         /// <param name="order">Order instance</param>
         /// <param name="languageId">Message language identifier</param>
         /// <returns>Queued email identifier</returns>
-        public override int SendOrderPlacedStoreOwnerNotification(Order order, int languageId)
+        public override IList<int> SendOrderPlacedStoreOwnerNotification(Order order, int languageId)
         {
             return SendNotification(order.StoreId, languageId, "OrderPlaced.StoreOwnerNotification",
                 new TokenModel { Customer = order.Customer, Order = order });
@@ -344,7 +367,7 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
         /// <param name="order">Order instance</param>
         /// <param name="languageId">Message language identifier</param>
         /// <returns>Queued email identifier</returns>
-        public override int SendOrderPaidStoreOwnerNotification(Order order, int languageId)
+        public override IList<int> SendOrderPaidStoreOwnerNotification(Order order, int languageId)
         {
             return SendNotification(order.StoreId, languageId, "OrderPaid.StoreOwnerNotification",
                 new TokenModel { Customer = order.Customer, Order = order });
@@ -358,7 +381,7 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
         /// <param name="attachmentFilePath">Attachment file path</param>
         /// <param name="attachmentFileName">Attachment file name. If specified, then this file name will be sent to a recipient. Otherwise, "AttachmentFilePath" name will be used.</param>
         /// <returns>Queued email identifier</returns>
-        public override int SendOrderPaidCustomerNotification(Order order, int languageId,
+        public override IList<int> SendOrderPaidCustomerNotification(Order order, int languageId,
             string attachmentFilePath = null, string attachmentFileName = null)
         {
             return SendNotification(order.StoreId, languageId, "OrderPaid.CustomerNotification",
@@ -374,7 +397,7 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
         /// <param name="vendor">Vendor instance</param>
         /// <param name="languageId">Message language identifier</param>
         /// <returns>Queued email identifier</returns>
-        public override int SendOrderPaidVendorNotification(Order order, Vendor vendor, int languageId)
+        public override IList<int> SendOrderPaidVendorNotification(Order order, Vendor vendor, int languageId)
         {
             return SendNotification(order.StoreId, languageId, "OrderPaid.VendorNotification",
                 new TokenModel { Customer = order.Customer, Order = order },
@@ -389,7 +412,7 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
         /// <param name="attachmentFilePath">Attachment file path</param>
         /// <param name="attachmentFileName">Attachment file name. If specified, then this file name will be sent to a recipient. Otherwise, "AttachmentFilePath" name will be used.</param>
         /// <returns>Queued email identifier</returns>
-        public override int SendOrderPlacedCustomerNotification(Order order, int languageId,
+        public override IList<int> SendOrderPlacedCustomerNotification(Order order, int languageId,
             string attachmentFilePath = null, string attachmentFileName = null)
         {
             return SendNotification(order.StoreId, languageId, "OrderPlaced.CustomerNotification",
@@ -404,7 +427,7 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
         /// <param name="shipment">Shipment</param>
         /// <param name="languageId">Message language identifier</param>
         /// <returns>Queued email identifier</returns>
-        public override int SendShipmentSentCustomerNotification(Shipment shipment, int languageId)
+        public override IList<int> SendShipmentSentCustomerNotification(Shipment shipment, int languageId)
         {
             return SendNotification(shipment.Order.StoreId, languageId, "ShipmentSent.CustomerNotification",
                 new TokenModel { Customer = shipment.Order.Customer, BillingAddress = shipment.Order.BillingAddress,
@@ -419,7 +442,7 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
         /// <param name="shipment">Shipment</param>
         /// <param name="languageId">Message language identifier</param>
         /// <returns>Queued email identifier</returns>
-        public override int SendShipmentDeliveredCustomerNotification(Shipment shipment, int languageId)
+        public override IList<int> SendShipmentDeliveredCustomerNotification(Shipment shipment, int languageId)
         {
             return SendNotification(shipment.Order.StoreId, languageId, "ShipmentDelivered.CustomerNotification",
                 new TokenModel { Customer = shipment.Order.Customer, BillingAddress = shipment.Order.BillingAddress,
@@ -436,7 +459,7 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
         /// <param name="attachmentFilePath">Attachment file path</param>
         /// <param name="attachmentFileName">Attachment file name. If specified, then this file name will be sent to a recipient. Otherwise, "AttachmentFilePath" name will be used.</param>
         /// <returns>Queued email identifier</returns>
-        public override int SendOrderCompletedCustomerNotification(Order order, int languageId,
+        public override IList<int> SendOrderCompletedCustomerNotification(Order order, int languageId,
             string attachmentFilePath = null, string attachmentFileName = null)
         {
             return SendNotification(order.StoreId, languageId, "OrderCompleted.CustomerNotification",
@@ -451,7 +474,7 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
         /// <param name="order">Order instance</param>
         /// <param name="languageId">Message language identifier</param>
         /// <returns>Queued email identifier</returns>
-        public override int SendOrderCancelledCustomerNotification(Order order, int languageId)
+        public override IList<int> SendOrderCancelledCustomerNotification(Order order, int languageId)
         {
             return SendNotification(order.StoreId, languageId, "OrderCancelled.CustomerNotification",
                 new TokenModel { Customer = order.Customer, BillingAddress = order.BillingAddress, Order = order },
@@ -465,7 +488,7 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
         /// <param name="refundedAmount">Amount refunded</param>
         /// <param name="languageId">Message language identifier</param>
         /// <returns>Queued email identifier</returns>
-        public override int SendOrderRefundedStoreOwnerNotification(Order order, decimal refundedAmount, int languageId)
+        public override IList<int> SendOrderRefundedStoreOwnerNotification(Order order, decimal refundedAmount, int languageId)
         {
             return SendNotification(order.StoreId, languageId, "OrderRefunded.StoreOwnerNotification",
                 new TokenModel { Customer = order.Customer, Order = order, RefundedAmount = refundedAmount });
@@ -478,7 +501,7 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
         /// <param name="refundedAmount">Amount refunded</param>
         /// <param name="languageId">Message language identifier</param>
         /// <returns>Queued email identifier</returns>
-        public override int SendOrderRefundedCustomerNotification(Order order, decimal refundedAmount, int languageId)
+        public override IList<int> SendOrderRefundedCustomerNotification(Order order, decimal refundedAmount, int languageId)
         {
             return SendNotification(order.StoreId, languageId, "OrderRefunded.CustomerNotification",
                 new TokenModel { Customer = order.Customer, BillingAddress = order.BillingAddress,
@@ -492,7 +515,7 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
         /// <param name="orderNote">Order note</param>
         /// <param name="languageId">Message language identifier</param>
         /// <returns>Queued email identifier</returns>
-        public override int SendNewOrderNoteAddedCustomerNotification(OrderNote orderNote, int languageId)
+        public override IList<int> SendNewOrderNoteAddedCustomerNotification(OrderNote orderNote, int languageId)
         {
             return SendNotification(orderNote.Order.StoreId, languageId, "Customer.NewOrderNote",
                 new TokenModel { Customer = orderNote.Order.Customer, BillingAddress = orderNote.Order.BillingAddress,
@@ -507,7 +530,7 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
         /// <param name="recurringPayment">Recurring payment</param>
         /// <param name="languageId">Message language identifier</param>
         /// <returns>Queued email identifier</returns>
-        public override int SendRecurringPaymentCancelledStoreOwnerNotification(RecurringPayment recurringPayment, int languageId)
+        public override IList<int> SendRecurringPaymentCancelledStoreOwnerNotification(RecurringPayment recurringPayment, int languageId)
         {
             return SendNotification(recurringPayment.InitialOrder.StoreId, languageId, "RecurringPaymentCancelled.StoreOwnerNotification",
                 new TokenModel { Customer = recurringPayment.InitialOrder.Customer,
@@ -524,7 +547,7 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
         /// <param name="subscription">Newsletter subscription</param>
         /// <param name="languageId">Language identifier</param>
         /// <returns>Queued email identifier</returns>
-        public override int SendNewsLetterSubscriptionActivationMessage(NewsLetterSubscription subscription, int languageId)
+        public override IList<int> SendNewsLetterSubscriptionActivationMessage(NewsLetterSubscription subscription, int languageId)
         {
             return SendNotification(0, languageId, "NewsLetterSubscription.ActivationMessage",
                 new TokenModel { NewsLetterSubscription = subscription }, subscription.Email, string.Empty);
@@ -536,7 +559,7 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
         /// <param name="subscription">Newsletter subscription</param>
         /// <param name="languageId">Language identifier</param>
         /// <returns>Queued email identifier</returns>
-        public override int SendNewsLetterSubscriptionDeactivationMessage(NewsLetterSubscription subscription, int languageId)
+        public override IList<int> SendNewsLetterSubscriptionDeactivationMessage(NewsLetterSubscription subscription, int languageId)
         {
             return SendNotification(0, languageId, "NewsLetterSubscription.DeactivationMessage",
                 new TokenModel { NewsLetterSubscription = subscription }, subscription.Email, string.Empty);
@@ -556,7 +579,7 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
         /// <param name="friendsEmail">Friend's email</param>
         /// <param name="personalMessage">Personal message</param>
         /// <returns>Queued email identifier</returns>
-        public override int SendProductEmailAFriendMessage(Customer customer, int languageId,
+        public override IList<int> SendProductEmailAFriendMessage(Customer customer, int languageId,
             Product product, string customerEmail, string friendsEmail, string personalMessage)
         {
             return SendNotification(0, languageId, "Service.EmailAFriend",
@@ -574,7 +597,7 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
         /// <param name="friendsEmail">Friend's email</param>
         /// <param name="personalMessage">Personal message</param>
         /// <returns>Queued email identifier</returns>
-        public override int SendWishlistEmailAFriendMessage(Customer customer, int languageId,
+        public override IList<int> SendWishlistEmailAFriendMessage(Customer customer, int languageId,
              string customerEmail, string friendsEmail, string personalMessage)
         {
             return SendNotification(0, languageId, "Wishlist.EmailAFriend",
@@ -594,7 +617,7 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
         /// <param name="orderItem">Order item</param>
         /// <param name="languageId">Message language identifier</param>
         /// <returns>Queued email identifier</returns>
-        public override int SendNewReturnRequestStoreOwnerNotification(ReturnRequest returnRequest, OrderItem orderItem, int languageId)
+        public override IList<int> SendNewReturnRequestStoreOwnerNotification(ReturnRequest returnRequest, OrderItem orderItem, int languageId)
         {
             return SendNotification(orderItem.Order.StoreId, languageId, "NewReturnRequest.StoreOwnerNotification",
                 new TokenModel { Customer = returnRequest.Customer, OrderItem = orderItem, ReturnRequest = returnRequest });
@@ -607,14 +630,14 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
         /// <param name="orderItem">Order item</param>
         /// <param name="languageId">Message language identifier</param>
         /// <returns>Queued email identifier</returns>
-        public override int SendReturnRequestStatusChangedCustomerNotification(ReturnRequest returnRequest,
+        public override IList<int> SendReturnRequestStatusChangedCustomerNotification(ReturnRequest returnRequest,
             OrderItem orderItem, int languageId)
         {
             return SendNotification(orderItem.Order.StoreId, languageId, "ReturnRequestStatusChanged.CustomerNotification",
                 new TokenModel { Customer = returnRequest.Customer, BillingAddress = orderItem.Order.BillingAddress,
                     OrderItem = orderItem, ReturnRequest = returnRequest },
                 returnRequest.Customer.IsGuest() ? orderItem.Order.BillingAddress.Email : returnRequest.Customer.Email,
-                returnRequest.Customer.IsGuest() ? orderItem.Order.BillingAddress.FirstName : returnRequest.Customer.GetFullName());
+                returnRequest.Customer.IsGuest() ? orderItem.Order.BillingAddress.FirstName : _currentCustomerService.GetCustomerFullName(returnRequest.Customer));
         }
 
         #endregion
@@ -629,12 +652,12 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
         /// <param name="forum">Forum</param>
         /// <param name="languageId">Message language identifier</param>
         /// <returns>Queued email identifier</returns>
-        public new int SendNewForumTopicMessage(Customer customer, ForumTopic forumTopic, Forum forum, int languageId)
+        public new IList<int> SendNewForumTopicMessage(Customer customer, ForumTopic forumTopic, Forum forum, int languageId)
         {
             return SendNotification(0, languageId, "Forums.NewForumTopic",
                 new TokenModel { Customer = customer, BillingAddress = customer.BillingAddress,
                     ForumTopic = forumTopic, Forum = forumTopic.Forum },
-                customer.Email, customer.GetFullName());
+                customer.Email, _currentCustomerService.GetCustomerFullName(customer));
         }
 
         /// <summary>
@@ -647,13 +670,13 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
         /// <param name="friendlyForumTopicPageIndex">Friendly (starts with 1) forum topic page to use for URL generation</param>
         /// <param name="languageId">Message language identifier</param>
         /// <returns>Queued email identifier</returns>
-        public new int SendNewForumPostMessage(Customer customer, ForumPost forumPost, ForumTopic forumTopic,
+        public new IList<int> SendNewForumPostMessage(Customer customer, ForumPost forumPost, ForumTopic forumTopic,
             Forum forum, int friendlyForumTopicPageIndex, int languageId)
         {
             return SendNotification(0, languageId, "Forums.NewForumPost",
                 new TokenModel { Customer = customer, BillingAddress = customer.BillingAddress,ForumTopic = forumPost.ForumTopic,
                     Forum = forumPost.ForumTopic.Forum, ForumPost = forumPost, FriendlyForumTopicPageIndex = friendlyForumTopicPageIndex },
-                customer.Email, customer.GetFullName());
+                customer.Email, _currentCustomerService.GetCustomerFullName(customer));
         }
 
         /// <summary>
@@ -662,12 +685,12 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
         /// <param name="privateMessage">Private message</param>
         /// <param name="languageId">Message language identifier</param>
         /// <returns>Queued email identifier</returns>
-        public new int SendPrivateMessageNotification(PrivateMessage privateMessage, int languageId)
+        public new IList<int> SendPrivateMessageNotification(PrivateMessage privateMessage, int languageId)
         {
             return SendNotification(0, languageId, "Customer.NewPM",
                 new TokenModel { Customer = privateMessage.ToCustomer,
                     BillingAddress = privateMessage.ToCustomer.BillingAddress, PrivateMessage = privateMessage },
-                privateMessage.ToCustomer.Email, privateMessage.ToCustomer.GetFullName());
+                privateMessage.ToCustomer.Email, _currentCustomerService.GetCustomerFullName(privateMessage.ToCustomer));
         }
 
         #endregion
@@ -681,7 +704,7 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
         /// <param name="vendor">Vendor</param>
         /// <param name="languageId">Message language identifier</param>
         /// <returns>Queued email identifier</returns>
-        public override int SendNewVendorAccountApplyStoreOwnerNotification(Customer customer, Vendor vendor, int languageId)
+        public override IList<int> SendNewVendorAccountApplyStoreOwnerNotification(Customer customer, Vendor vendor, int languageId)
         {
             return SendNotification(0, languageId, "VendorAccountApply.StoreOwnerNotification",
                 new TokenModel { Customer = customer, Vendor = vendor });
@@ -693,7 +716,7 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
         /// <param name="vendor">Vendor</param>
         /// <param name="languageId">Message language identifier</param>
         /// <returns>Queued email identifier</returns>
-        public override int SendVendorInformationChangeNotification(Vendor vendor, int languageId)
+        public override IList<int> SendVendorInformationChangeNotification(Vendor vendor, int languageId)
         {
             return SendNotification(0, languageId, "VendorInformationChange.StoreOwnerNotification",
                 new TokenModel { Vendor = vendor });
@@ -705,9 +728,9 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
         /// <param name="giftCard">Gift card</param>
         /// <param name="languageId">Message language identifier</param>
         /// <returns>Queued email identifier</returns>
-        public override int SendGiftCardNotification(GiftCard giftCard, int languageId)
+        public override IList<int> SendGiftCardNotification(GiftCard giftCard, int languageId)
         {
-            return SendNotification(giftCard.PurchasedWithOrderItem != null ? giftCard.PurchasedWithOrderItem.Order.StoreId : 0, 
+            return SendNotification(giftCard.PurchasedWithOrderItem?.Order.StoreId ?? 0, 
                 languageId, "GiftCard.Notification", new TokenModel { GiftCard = giftCard },
                 giftCard.RecipientEmail, giftCard.RecipientName);
         }
@@ -718,7 +741,7 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
         /// <param name="productReview">Product review</param>
         /// <param name="languageId">Message language identifier</param>
         /// <returns>Queued email identifier</returns>
-        public override int SendProductReviewNotificationMessage(ProductReview productReview, int languageId)
+        public override IList<int> SendProductReviewNotificationMessage(ProductReview productReview, int languageId)
         {
             return SendNotification(0, languageId, "Product.ProductReview",
                 new TokenModel { Customer = productReview.Customer, ProductReview = productReview });
@@ -730,7 +753,7 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
         /// <param name="product">Product</param>
         /// <param name="languageId">Message language identifier</param>
         /// <returns>Queued email identifier</returns>
-        public override int SendQuantityBelowStoreOwnerNotification(Product product, int languageId)
+        public override IList<int> SendQuantityBelowStoreOwnerNotification(Product product, int languageId)
         {
             return SendNotification(0, languageId, "QuantityBelow.StoreOwnerNotification",
                 new TokenModel { Product = product });
@@ -742,7 +765,7 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
         /// <param name="combination">Attribute combination</param>
         /// <param name="languageId">Message language identifier</param>
         /// <returns>Queued email identifier</returns>
-        public override int SendQuantityBelowStoreOwnerNotification(ProductAttributeCombination combination, int languageId)
+        public override IList<int> SendQuantityBelowStoreOwnerNotification(ProductAttributeCombination combination, int languageId)
         {
             return SendNotification(0, languageId, "QuantityBelow.AttributeCombination.StoreOwnerNotification",
                 new TokenModel { Product = combination.Product, Combination = combination });
@@ -756,7 +779,7 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
         /// <param name="vatAddress">Received VAT address</param>
         /// <param name="languageId">Message language identifier</param>
         /// <returns>Queued email identifier</returns>
-        public override int SendNewVatSubmittedStoreOwnerNotification(Customer customer,
+        public override IList<int> SendNewVatSubmittedStoreOwnerNotification(Customer customer,
             string vatName, string vatAddress, int languageId)
         {
             return SendNotification(0, languageId, "NewVATSubmitted.StoreOwnerNotification",
@@ -771,7 +794,7 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
         /// <param name="blogComment">Blog comment</param>
         /// <param name="languageId">Message language identifier</param>
         /// <returns>Queued email identifier</returns>
-        public override int SendBlogCommentNotificationMessage(BlogComment blogComment, int languageId)
+        public override IList<int> SendBlogCommentNotificationMessage(BlogComment blogComment, int languageId)
         {
             return SendNotification(0, languageId, "Blog.BlogComment",
                 new TokenModel { Customer = blogComment.Customer, BlogComment = blogComment });
@@ -783,7 +806,7 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
         /// <param name="newsComment">News comment</param>
         /// <param name="languageId">Message language identifier</param>
         /// <returns>Queued email identifier</returns>
-        public override int SendNewsCommentNotificationMessage(NewsComment newsComment, int languageId)
+        public override IList<int> SendNewsCommentNotificationMessage(NewsComment newsComment, int languageId)
         {
             return SendNotification(0, languageId, "News.NewsComment",
                 new TokenModel { Customer = newsComment.Customer, NewsComment = newsComment });
@@ -795,12 +818,12 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
         /// <param name="subscription">Subscription</param>
         /// <param name="languageId">Message language identifier</param>
         /// <returns>Queued email identifier</returns>
-        public override int SendBackInStockNotification(BackInStockSubscription subscription, int languageId)
+        public override IList<int> SendBackInStockNotification(BackInStockSubscription subscription, int languageId)
         {
             return SendNotification(subscription.StoreId, languageId, "Customer.BackInStock",
                 new TokenModel { Customer = subscription.Customer,
                     BillingAddress = subscription.Customer.BillingAddress, Subscription = subscription },
-                subscription.Customer.Email, subscription.Customer.GetFullName());
+                subscription.Customer.Email, _currentCustomerService.GetCustomerFullName(subscription.Customer));
         }
 
         #endregion

@@ -1,6 +1,6 @@
 ﻿using Nop.Core.Domain.Messages;
-using Nop.Core.Plugins;
 using Nop.Services.Events;
+using Nop.Services.Plugins;
 
 namespace Nop.Plugin.Misc.SendInBlue.Infrastructure.Cache
 {

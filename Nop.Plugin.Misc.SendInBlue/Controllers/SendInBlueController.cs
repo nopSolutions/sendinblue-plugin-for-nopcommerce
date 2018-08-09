@@ -44,8 +44,8 @@ namespace Nop.Plugin.Misc.SendInBlue.Controllers
         private readonly ISettingService _settingService;
         private readonly IStoreMappingService _storeMappingService;
         private readonly IStoreService _storeService;
-        private readonly IWorkContext _workContext;
         private readonly SendInBlueEmailManager _sendInBlueEmailManager;
+        private readonly IStoreContext _storeContext;
 
         #endregion
 
@@ -61,8 +61,8 @@ namespace Nop.Plugin.Misc.SendInBlue.Controllers
             ISettingService settingService,
             IStoreMappingService storeMappingService,
             IStoreService storeService,
-            IWorkContext workContext,
-            SendInBlueEmailManager sendInBlueEmailManager)
+            SendInBlueEmailManager sendInBlueEmailManager,
+            IStoreContext storeContext)
         {
             this._emailAccountService = emailAccountService;
             this._genericAttributeService = genericAttributeService;
@@ -74,8 +74,8 @@ namespace Nop.Plugin.Misc.SendInBlue.Controllers
             this._settingService = settingService;
             this._storeMappingService = storeMappingService;
             this._storeService = storeService;
-            this._workContext = workContext;
             this._sendInBlueEmailManager = sendInBlueEmailManager;
+            this._storeContext = storeContext;
         }
 
         #endregion
@@ -88,7 +88,7 @@ namespace Nop.Plugin.Misc.SendInBlue.Controllers
         /// <param name="model">Model</param>
         protected void PrepareModel(SendInBlueModel model)
         {
-            var storeId = GetActiveStoreScopeConfiguration(_storeService, _workContext);
+            var storeId = _storeContext.ActiveStoreScopeConfiguration;
             var sendInBlueSettings = _settingService.LoadSetting<SendInBlueSettings>(storeId);
             model.ActiveStoreScopeConfiguration = storeId;
 
@@ -175,20 +175,18 @@ namespace Nop.Plugin.Misc.SendInBlue.Controllers
             //"GetSelectedTabName" method of \Nop.Web.Framework\HtmlExtensions.cs
             if (string.IsNullOrEmpty(tabName))
             {
-                tabName = this.Request.Form["selected-tab-name"];
+                tabName = Request.Form["selected-tab-name"];
             }
 
-            if (!string.IsNullOrEmpty(tabName))
+            if (string.IsNullOrEmpty(tabName)) return;
+            const string dataKey = "nop.selected-tab-name";
+            if (persistForTheNextRequest)
             {
-                const string dataKey = "nop.selected-tab-name";
-                if (persistForTheNextRequest)
-                {
-                    TempData[dataKey] = tabName;
-                }
-                else
-                {
-                    ViewData[dataKey] = tabName;
-                }
+                TempData[dataKey] = tabName;
+            }
+            else
+            {
+                ViewData[dataKey] = tabName;
             }
         }
 
@@ -215,7 +213,7 @@ namespace Nop.Plugin.Misc.SendInBlue.Controllers
             if (!ModelState.IsValid)
                 return Configure();
 
-            var storeId = GetActiveStoreScopeConfiguration(_storeService, _workContext);
+            var storeId = _storeContext.ActiveStoreScopeConfiguration;
             var sendInBlueSettings = _settingService.LoadSetting<SendInBlueSettings>(storeId);
 
             //set API key
@@ -239,7 +237,7 @@ namespace Nop.Plugin.Misc.SendInBlue.Controllers
             if (!ModelState.IsValid)
                 return Configure();
 
-            var storeId = GetActiveStoreScopeConfiguration(_storeService, _workContext);
+            var storeId = _storeContext.ActiveStoreScopeConfiguration;
             var sendInBlueSettings = _settingService.LoadSetting<SendInBlueSettings>(storeId);
 
             //create or update synchronization task
@@ -251,13 +249,17 @@ namespace Nop.Plugin.Misc.SendInBlue.Controllers
                 _scheduleTaskService.UpdateTask(task);
             }
             else
+            {
                 _scheduleTaskService.InsertTask(new ScheduleTask
                 {
                     Name = "SendInBlue synchronization",
                     Seconds = model.AutoSyncEachMinutes * 60,
                     Enabled = model.AutoSync,
-                    Type = "Nop.Plugin.Misc.SendInBlue.Services.SendInBlueSynchronizationTask, Nop.Plugin.Misc.SendInBlue",
+                    Type =
+                        "Nop.Plugin.Misc.SendInBlue.Services.SendInBlueSynchronizationTask, Nop.Plugin.Misc.SendInBlue"
                 });
+            }
+
             if (model.AutoSync)
                 SuccessNotification(_localizationService.GetResource("Plugins.Misc.SendInBlue.AutoSyncRestart"));
 
@@ -266,11 +268,11 @@ namespace Nop.Plugin.Misc.SendInBlue.Controllers
 
             //set notify url for the importing process
             var currentStore = storeId == 0 ? _storeService.GetAllStores().FirstOrDefault() : _storeService.GetStoreById(storeId);
-            sendInBlueSettings.UrlSync = $"{currentStore.Url.TrimEnd('/')}{Url.RouteUrl("Plugin.Misc.SendInBlue.ImportUsers")}";
+            sendInBlueSettings.UrlSync = $"{currentStore?.Url.TrimEnd('/')}{Url.RouteUrl("Plugin.Misc.SendInBlue.ImportUsers")}";
             _settingService.SaveSetting(sendInBlueSettings, x => x.UrlSync, storeId, false);
 
             //create webhook for the unsubscribing event
-            var unsubscribeUrl = $"{currentStore.Url.TrimEnd('/')}{Url.RouteUrl("Plugin.Misc.SendInBlue.Unsubscribe")}";
+            var unsubscribeUrl = $"{currentStore?.Url.TrimEnd('/')}{Url.RouteUrl("Plugin.Misc.SendInBlue.Unsubscribe")}";
             sendInBlueSettings.UnsubscribeWebhookId = _sendInBlueEmailManager.GetUnsubscribeWebHookId(sendInBlueSettings.UnsubscribeWebhookId, unsubscribeUrl);
             _settingService.SaveSetting(sendInBlueSettings, x => x.UnsubscribeWebhookId, storeId, false);
 
@@ -298,7 +300,7 @@ namespace Nop.Plugin.Misc.SendInBlue.Controllers
             if (!ModelState.IsValid)
                 return Configure();
 
-            var storeId = GetActiveStoreScopeConfiguration(_storeService, _workContext);
+            var storeId = _storeContext.ActiveStoreScopeConfiguration;
 
             //synchronize subscriptions for the certain store
             var syncResult = _sendInBlueEmailManager.Synchronize(true, storeId);
@@ -330,7 +332,7 @@ namespace Nop.Plugin.Misc.SendInBlue.Controllers
             if (!ModelState.IsValid)
                 return Configure();
 
-            var storeId = GetActiveStoreScopeConfiguration(_storeService, _workContext);
+            var storeId = _storeContext.ActiveStoreScopeConfiguration;
             var sendInBlueSettings = _settingService.LoadSetting<SendInBlueSettings>(storeId);
 
             if (model.UseSendInBlueSMTP)
@@ -388,7 +390,7 @@ namespace Nop.Plugin.Misc.SendInBlue.Controllers
         [Area(AreaNames.Admin)]
         public IActionResult MessageList(ListMessageModel model)
         {
-            var storeId = GetActiveStoreScopeConfiguration(_storeService, _workContext);
+            var storeId = _storeContext.ActiveStoreScopeConfiguration;
             var messageTemplates = _messageTemplateService.GetAllMessageTemplates(storeId);
 
             var gridModel = new DataSourceResult
@@ -396,7 +398,7 @@ namespace Nop.Plugin.Misc.SendInBlue.Controllers
                 Data = messageTemplates.Select(x =>
                 {
                     //standard template of message is edited in the admin area, SendInBlue template is edited in the SendInBlue account
-                    var isStandardTemplate = !x.GetAttribute<bool>("SendInBlueTemplate", _genericAttributeService);
+                    var isStandardTemplate = _genericAttributeService.GetAttribute<bool>(x, "SendInBlueTemplate"); //!x.GetAttribute<bool>("SendInBlueTemplate", _genericAttributeService);
                     var message = new ListMessageModel
                     {
                         Id = x.Id,
@@ -408,7 +410,7 @@ namespace Nop.Plugin.Misc.SendInBlue.Controllers
                         TemplateType = isStandardTemplate ? _localizationService.GetResource("Plugins.Misc.SendInBlue.StandardTemplate")
                             : _localizationService.GetResource("Plugins.Misc.SendInBlue.SendInBlueTemplate"),
                         EditLink = isStandardTemplate ? Url.Action("Edit", "MessageTemplate", new { id = x.Id, area = "Admin" })
-                            : $"{EDIT_TEMPLATE_URL}{x.GetAttribute<int>("TemplateId", _genericAttributeService)}"
+                            : $"{EDIT_TEMPLATE_URL}{_genericAttributeService.GetAttribute<int>(x, "TemplateId")}"
                     };
 
                     return message;
@@ -440,11 +442,11 @@ namespace Nop.Plugin.Misc.SendInBlue.Controllers
             //SendInBlue message template
             if (model.TemplateTypeId == 1)
             {
-                var storeId = GetActiveStoreScopeConfiguration(_storeService, _workContext);
+                var storeId = _storeContext.ActiveStoreScopeConfiguration;
                 var sendInBlueSettings = _settingService.LoadSetting<SendInBlueSettings>(storeId);
 
                 //get template or create new one
-                var templateId = _sendInBlueEmailManager.GetTemplateId(message.GetAttribute<int>("TemplateId", _genericAttributeService),
+                var templateId = _sendInBlueEmailManager.GetTemplateId(_genericAttributeService.GetAttribute<int>(message, "TemplateId"),
                     message, _emailAccountService.GetEmailAccountById(sendInBlueSettings.SendInBlueEmailAccountId));
 
                 _genericAttributeService.SaveAttribute(message, "SendInBlueTemplate", true);
@@ -454,11 +456,11 @@ namespace Nop.Plugin.Misc.SendInBlue.Controllers
             }
 
             //update nopCommerce message template
-            if (model.IsActive != message.IsActive)
-            {
-                message.IsActive = model.IsActive;
-                _messageTemplateService.UpdateMessageTemplate(message);
-            }
+            if (model.IsActive == message.IsActive) 
+                return new NullJsonResult();
+
+            message.IsActive = model.IsActive;
+            _messageTemplateService.UpdateMessageTemplate(message);
 
             return new NullJsonResult();
         }
@@ -472,7 +474,7 @@ namespace Nop.Plugin.Misc.SendInBlue.Controllers
             if (!ModelState.IsValid)
                 return Configure();
 
-            var storeId = GetActiveStoreScopeConfiguration(_storeService, _workContext);
+            var storeId = _storeContext.ActiveStoreScopeConfiguration;
             var sendInBlueSettings = _settingService.LoadSetting<SendInBlueSettings>(storeId);
 
             /* We do not clear cache after each setting update.
@@ -501,7 +503,7 @@ namespace Nop.Plugin.Misc.SendInBlue.Controllers
         [Area(AreaNames.Admin)]
         public IActionResult SMSList(ListSMSModel model)
         {
-            var storeId = GetActiveStoreScopeConfiguration(_storeService, _workContext);
+            var storeId = _storeContext.ActiveStoreScopeConfiguration;
             var sendInBlueSettings = _settingService.LoadSetting<SendInBlueSettings>(storeId);
 
             //get message templates which are sending in SMS
@@ -511,15 +513,15 @@ namespace Nop.Plugin.Misc.SendInBlue.Controllers
             {
                 Data = messageTemplates.Select(x =>
                 {
-                    var phoneTypeID = x.GetAttribute<int>("PhoneTypeId", _genericAttributeService);
+                    var phoneTypeID = _genericAttributeService.GetAttribute<int>(x, "PhoneTypeId");
                     var sms = new ListSMSModel
                     {
                         Id = x.Id,
                         MessageId = x.Id,
                         Name = storeId > 0 ? x.Name : $"{x.Name} {(!x.LimitedToStores ? string.Empty : _storeService.GetAllStores().Where(s => !x.LimitedToStores || _storeMappingService.GetStoresIdsWithAccess(x).Contains(s.Id)).Aggregate("-", (current, next) => $"{current} {next.Name}, ").TrimEnd(' ', ','))}",
-                        SMSActive = x.GetAttribute<bool>("UseSMS", _genericAttributeService),
+                        SMSActive = _genericAttributeService.GetAttribute<bool>(x, "UseSMS"),
                         PhoneTypeId = phoneTypeID,
-                        Text = x.GetAttribute<string>("SMSText", _genericAttributeService)
+                        Text = _genericAttributeService.GetAttribute<string>(x, "SMSText")
                     };
 
                     //choose phone number for the sending SMS
@@ -555,7 +557,7 @@ namespace Nop.Plugin.Misc.SendInBlue.Controllers
             if (!ModelState.IsValid)
                 return Json(new DataSourceResult { Errors = ModelState.SerializeErrors() });
 
-            var storeId = GetActiveStoreScopeConfiguration(_storeService, _workContext);
+            var storeId = _storeContext.ActiveStoreScopeConfiguration;
             var sendInBlueSettings = _settingService.LoadSetting<SendInBlueSettings>(storeId);
 
             var message = _messageTemplateService.GetMessageTemplateById(model.MessageId);
@@ -567,12 +569,12 @@ namespace Nop.Plugin.Misc.SendInBlue.Controllers
             }
 
             //update list of the message templates which are sending in SMS
-            if (!sendInBlueSettings.SMSMessageTemplatesIds.Contains(model.MessageId))
-            {
-                sendInBlueSettings.SMSMessageTemplatesIds.Add(model.MessageId);
-                _settingService.SaveSetting(sendInBlueSettings, x => x.SMSMessageTemplatesIds, storeId, false);
-                _settingService.ClearCache();
-            }
+            if (sendInBlueSettings.SMSMessageTemplatesIds.Contains(model.MessageId)) 
+                return new NullJsonResult();
+
+            sendInBlueSettings.SMSMessageTemplatesIds.Add(model.MessageId);
+            _settingService.SaveSetting(sendInBlueSettings, x => x.SMSMessageTemplatesIds, storeId, false);
+            _settingService.ClearCache();
 
             return new NullJsonResult();
         }
@@ -598,9 +600,9 @@ namespace Nop.Plugin.Misc.SendInBlue.Controllers
         public IActionResult SMSDelete(ListSMSModel model)
         {
             if (!ModelState.IsValid)
-                return Json(new DataSourceResult { Errors = ModelState.SerializeErrors() });
+                return Json(new DataSourceResult {Errors = ModelState.SerializeErrors()});
 
-            var storeId = GetActiveStoreScopeConfiguration(_storeService, _workContext);
+            var storeId = _storeContext.ActiveStoreScopeConfiguration;
             var sendInBlueSettings = _settingService.LoadSetting<SendInBlueSettings>(storeId);
 
             //delete generic attributes
@@ -620,12 +622,12 @@ namespace Nop.Plugin.Misc.SendInBlue.Controllers
             }
 
             //update list of the message templates which are sending in SMS
-            if (sendInBlueSettings.SMSMessageTemplatesIds.Contains(model.MessageId))
-            {
-                sendInBlueSettings.SMSMessageTemplatesIds.Remove(model.MessageId);
-                _settingService.SaveSetting(sendInBlueSettings, x => x.SMSMessageTemplatesIds, storeId, false);
-                _settingService.ClearCache();
-            }
+            if (!sendInBlueSettings.SMSMessageTemplatesIds.Contains(model.MessageId))
+                return new NullJsonResult();
+
+            sendInBlueSettings.SMSMessageTemplatesIds.Remove(model.MessageId);
+            _settingService.SaveSetting(sendInBlueSettings, x => x.SMSMessageTemplatesIds, storeId, false);
+            _settingService.ClearCache();
 
             return new NullJsonResult();
         }

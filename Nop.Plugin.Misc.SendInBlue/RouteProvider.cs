@@ -18,10 +18,6 @@ namespace Nop.Plugin.Misc.SendInBlue
         }
         
 
-        public int Priority
-        {
-            get { return 0; }
-        }
-
+        public int Priority => 0;
     }
 }

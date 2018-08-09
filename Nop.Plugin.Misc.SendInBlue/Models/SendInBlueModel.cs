@@ -62,38 +62,4 @@ namespace Nop.Plugin.Misc.SendInBlue.Models
         [NopResourceDisplayName("Admin.ContentManagement.MessageTemplates.Fields.AllowedTokens")]
         public string AllowedTokens { get; set; }
     }
-
-    public class ListMessageModel
-    {
-        public int Id { get; set; }
-
-        public string Name { get; set; }
-
-        public bool IsActive { get; set; }
-
-        public string ListOfStores { get; set; }
-
-        public string TemplateType { get; set; }
-
-        public int TemplateTypeId { get; set; }
-
-        public string EditLink { get; set; }
-    }
-
-    public class ListSMSModel
-    {
-        public int Id { get; set; }
-
-        public int MessageId { get; set; }
-
-        public string Name { get; set; }
-
-        public bool SMSActive { get; set; }
-
-        public int PhoneTypeId { get; set; }
-
-        public string PhoneType { get; set; }
-
-        public string Text { get; set; }
-    }
 }
