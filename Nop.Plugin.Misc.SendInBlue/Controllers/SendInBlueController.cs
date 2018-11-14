@@ -30,7 +30,7 @@ namespace Nop.Plugin.Misc.SendInBlue.Controllers
         /// <summary>
         /// Base URL for the editing of message template on SendInBlue account
         /// </summary>
-        private const string EDIT_TEMPLATE_URL = "https://my.sendinblue.com/camp/step1/type/template/id/";
+        private const string EDIT_TEMPLATE_URL = "https://my.sendinblue.com/camp/template/{0}/message-setup";
 
         #region Fields
         
@@ -398,7 +398,7 @@ namespace Nop.Plugin.Misc.SendInBlue.Controllers
                 Data = messageTemplates.Select(x =>
                 {
                     //standard template of message is edited in the admin area, SendInBlue template is edited in the SendInBlue account
-                    var isStandardTemplate = _genericAttributeService.GetAttribute<bool>(x, "SendInBlueTemplate"); //!x.GetAttribute<bool>("SendInBlueTemplate", _genericAttributeService);
+                    var isStandardTemplate = !_genericAttributeService.GetAttribute<bool>(x, "SendInBlueTemplate");
                     var message = new ListMessageModel
                     {
                         Id = x.Id,
@@ -410,7 +410,7 @@ namespace Nop.Plugin.Misc.SendInBlue.Controllers
                         TemplateType = isStandardTemplate ? _localizationService.GetResource("Plugins.Misc.SendInBlue.StandardTemplate")
                             : _localizationService.GetResource("Plugins.Misc.SendInBlue.SendInBlueTemplate"),
                         EditLink = isStandardTemplate ? Url.Action("Edit", "MessageTemplate", new { id = x.Id, area = "Admin" })
-                            : $"{EDIT_TEMPLATE_URL}{_genericAttributeService.GetAttribute<int>(x, "TemplateId")}"
+                            : $"{string.Format(EDIT_TEMPLATE_URL, _genericAttributeService.GetAttribute<int>(x, "TemplateId"))}"
                     };
 
                     return message;
@@ -452,7 +452,7 @@ namespace Nop.Plugin.Misc.SendInBlue.Controllers
                 _genericAttributeService.SaveAttribute(message, "SendInBlueTemplate", true);
                 _genericAttributeService.SaveAttribute(message, "TemplateId", templateId);
                 model.TemplateType = _localizationService.GetResource("Plugins.Misc.SendInBlue.SendInBlueTemplate");
-                model.EditLink = $"{EDIT_TEMPLATE_URL}{templateId}";
+                model.EditLink = $"{string.Format(EDIT_TEMPLATE_URL, _genericAttributeService.GetAttribute<int>(message, "TemplateId"))}";
             }
 
             //update nopCommerce message template
