@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using Nop.Core;
+using Nop.Core.Domain.Orders;
 using Nop.Core.Domain.Tasks;
 using Nop.Core.Plugins;
 using Nop.Plugin.Misc.SendInBlue.Services;
@@ -24,6 +25,7 @@ namespace Nop.Plugin.Misc.SendInBlue
         private readonly ISettingService _settingService;
         private readonly IStoreService _storeService;
         private readonly SendInBlueEmailManager _sendInBlueEmailManager;
+        private readonly SendInBlueMarketingAutomationManager _sendInBlueMarketingAutomationManager;
         private readonly IWebHelper _webHelper;
         private readonly ILocalizationService _localizationService;
 
@@ -36,6 +38,7 @@ namespace Nop.Plugin.Misc.SendInBlue
             ISettingService settingService,
             IStoreService storeService,
             SendInBlueEmailManager sendInBlueEmailManager,
+            SendInBlueMarketingAutomationManager sendInBlueMarketingAutomationManager,
             IWebHelper webHelper,
             ILocalizationService localizationService)
         {
@@ -44,6 +47,7 @@ namespace Nop.Plugin.Misc.SendInBlue
             this._settingService = settingService;
             this._storeService = storeService;
             this._sendInBlueEmailManager = sendInBlueEmailManager;
+            this._sendInBlueMarketingAutomationManager = sendInBlueMarketingAutomationManager;
             this._webHelper = webHelper;
             this._localizationService = localizationService;
         }
@@ -61,12 +65,43 @@ namespace Nop.Plugin.Misc.SendInBlue
         }
 
         /// <summary>
+        /// Subscribe user
+        /// </summary>
+        /// <param name="email">Email of unsubscribed</param>
+        public void Subscribe(string email)
+        {
+            _sendInBlueEmailManager.Subscribe(email);
+        }
+
+        /// <summary>
         /// Unsubscribe user
         /// </summary>
         /// <param name="email">Email of unsubscribed</param>
         public void Unsubscribe(string email)
         {
             _sendInBlueEmailManager.Unsubscribe(email);
+        }
+
+
+        public void CartCreated(ShoppingCartItem cartItem)
+        {
+            _sendInBlueMarketingAutomationManager.CartCreated(cartItem);
+        }
+
+        public void CartUpdated(ShoppingCartItem cartItem)
+        {
+            _sendInBlueMarketingAutomationManager.CartUpdated(cartItem);
+        }
+
+        public void CartDeleted(ShoppingCartItem cartItem)
+        {
+           _sendInBlueMarketingAutomationManager.CartDeleted(cartItem);
+        }
+
+        public void OrderCompleted(Order order)
+        {
+            _sendInBlueEmailManager.UpdateContact(order);
+            _sendInBlueMarketingAutomationManager.OrderCompleted(order);
         }
 
         public override string GetConfigurationPageUrl()
@@ -98,7 +133,7 @@ namespace Nop.Plugin.Misc.SendInBlue
 
             //locales
             _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Misc.SendInBlue.AccountInfo", "Account information");
-            _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Misc.SendInBlue.ActivateSMTP", "If SMTP status is disabled, you need activate your SendInBlue SMTP account as described at https://resources.sendinblue.com/en/activate_smtp_account/");
+            _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Misc.SendInBlue.ActivateSMTP", "On your SendinBlue account, the SMTP has not been enabled yet. To request its activation, simply send an email to our support team at contact@sendinblue.com and mention that you will be using the SMTP with the nopCommerce plugin.");
             _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Misc.SendInBlue.AddNewSMSNotification", "Add new SMS notification");
             _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Misc.SendInBlue.AutoSyncRestart", "If synchronization task parameters has been changed, please restart the application");
             _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Misc.SendInBlue.BillingAddressPhone", "Billing address phone number");
@@ -107,6 +142,7 @@ namespace Nop.Plugin.Misc.SendInBlue
             _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Misc.SendInBlue.General", "General");
             _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Misc.SendInBlue.ImportProcess", "Your import is in process");
             _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Misc.SendInBlue.ManualSync", "Manual synchronization");
+            _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Misc.SendInBlue.MarketingAutomation", "Marketing Automation");
             _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Misc.SendInBlue.MyPhone", "Your phone number");
             _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Misc.SendInBlue.PhoneType", "Type of phone number");
             _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Misc.SendInBlue.SendInBlueTemplate", "SendInBlue email template");
@@ -125,6 +161,8 @@ namespace Nop.Plugin.Misc.SendInBlue
             _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Misc.SendInBlue.Fields.AutoSyncEachMinutes.Hint", "Input auto synchronization task period (minutes).");
             _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Misc.SendInBlue.Fields.List", "List");
             _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Misc.SendInBlue.Fields.List.Hint", "Choose list of users for the synchronization.");
+            _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Misc.SendInBlue.Fields.MaKey", "Tracker ID");
+            _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Misc.SendInBlue.Fields.MaKey.Hint", "Input your Tracker ID.");
             _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Misc.SendInBlue.Fields.MyPhoneNumber", "Your phone number");
             _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Misc.SendInBlue.Fields.MyPhoneNumber.Hint", "Input your phone number for SMS notifications.");
             _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Misc.SendInBlue.Fields.NewListName", "New list name");
@@ -133,8 +171,12 @@ namespace Nop.Plugin.Misc.SendInBlue
             _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Misc.SendInBlue.Fields.SMSFrom.Hint", "Input the name of the sender. The number of characters is limited to 11 (alphanumeric format).");
             _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Misc.SendInBlue.Fields.SMTPSender", "Send emails from");
             _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Misc.SendInBlue.Fields.SMTPSender.Hint", "Choose sender of your transactional emails.");
+            _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Misc.SendInBlue.Fields.SMTPPassword", "SMTP password");
+            _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Misc.SendInBlue.Fields.SMTPPassword.Hint", "SMTP password.");
             _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Misc.SendInBlue.Fields.UseSendInBlueSMTP", "Use SendInBlue for notifications");
             _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Misc.SendInBlue.Fields.UseSendInBlueSMTP.Hint", "Check for using SendInBlue SMTP for sending transactional emails.");
+            _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Misc.SendInBlue.Fields.UseMA", "Use Marketing Automation");
+            _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Misc.SendInBlue.Fields.UseMA.Hint", "Check for enable SendinBlue Automation.");
             _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Misc.SendInBlue.Fields.UseSMS", "Use SMS notifications");
             _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Misc.SendInBlue.Fields.UseSMS.Hint", "Check for sending transactional SMS.");
             
@@ -175,6 +217,7 @@ namespace Nop.Plugin.Misc.SendInBlue
             _localizationService.DeletePluginLocaleResource("Plugins.Misc.SendInBlue.General");
             _localizationService.DeletePluginLocaleResource("Plugins.Misc.SendInBlue.ImportProcess");
             _localizationService.DeletePluginLocaleResource("Plugins.Misc.SendInBlue.ManualSync");
+            _localizationService.DeletePluginLocaleResource("Plugins.Misc.SendInBlue.MarketingAutomation");
             _localizationService.DeletePluginLocaleResource("Plugins.Misc.SendInBlue.MyPhone");
             _localizationService.DeletePluginLocaleResource("Plugins.Misc.SendInBlue.PhoneType");
             _localizationService.DeletePluginLocaleResource("Plugins.Misc.SendInBlue.SendInBlueTemplate");
@@ -193,6 +236,8 @@ namespace Nop.Plugin.Misc.SendInBlue
             _localizationService.DeletePluginLocaleResource("Plugins.Misc.SendInBlue.Fields.AutoSyncEachMinutes.Hint");
             _localizationService.DeletePluginLocaleResource("Plugins.Misc.SendInBlue.Fields.List");
             _localizationService.DeletePluginLocaleResource("Plugins.Misc.SendInBlue.Fields.List.Hint");
+            _localizationService.DeletePluginLocaleResource("Plugins.Misc.SendInBlue.Fields.MaKey");
+            _localizationService.DeletePluginLocaleResource("Plugins.Misc.SendInBlue.Fields.MaKey.Hint");
             _localizationService.DeletePluginLocaleResource("Plugins.Misc.SendInBlue.Fields.MyPhoneNumber");
             _localizationService.DeletePluginLocaleResource("Plugins.Misc.SendInBlue.Fields.MyPhoneNumber.Hint");
             _localizationService.DeletePluginLocaleResource("Plugins.Misc.SendInBlue.Fields.NewListName");
@@ -201,8 +246,12 @@ namespace Nop.Plugin.Misc.SendInBlue
             _localizationService.DeletePluginLocaleResource("Plugins.Misc.SendInBlue.Fields.SMSFrom.Hint");
             _localizationService.DeletePluginLocaleResource("Plugins.Misc.SendInBlue.Fields.SMTPSender");
             _localizationService.DeletePluginLocaleResource("Plugins.Misc.SendInBlue.Fields.SMTPSender.Hint");
+            _localizationService.DeletePluginLocaleResource("Plugins.Misc.SendInBlue.Fields.SMTPPassword");
+            _localizationService.DeletePluginLocaleResource("Plugins.Misc.SendInBlue.Fields.SMTPPassword.Hint");
             _localizationService.DeletePluginLocaleResource("Plugins.Misc.SendInBlue.Fields.UseSendInBlueSMTP");
             _localizationService.DeletePluginLocaleResource("Plugins.Misc.SendInBlue.Fields.UseSendInBlueSMTP.Hint");
+            _localizationService.DeletePluginLocaleResource("Plugins.Misc.SendInBlue.Fields.UseMA");
+            _localizationService.DeletePluginLocaleResource("Plugins.Misc.SendInBlue.Fields.UseMA.Hint");
             _localizationService.DeletePluginLocaleResource("Plugins.Misc.SendInBlue.Fields.UseSMS");
             _localizationService.DeletePluginLocaleResource("Plugins.Misc.SendInBlue.Fields.UseSMS.Hint");
             

@@ -15,6 +15,7 @@
     <None Remove="logo.jpg" />
     <None Remove="plugin.json" />
     <None Remove="Views\Configure.cshtml" />
+    <None Remove="Views\_ViewImports.cshtml" />
   </ItemGroup>
   
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
@@ -47,9 +48,24 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Reference Include="SendInBlue">
-      <HintPath>SendInBlue.dll</HintPath>
+    <Reference Include="SendinBlue.ClientV3.45">
+      <HintPath>SendinBlue.ClientV3.45.dll</HintPath>
     </Reference>
+    <Reference Include="SendInBlueMarketingAutomation">
+      <HintPath>SendInBlueMarketingAutomation.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="RestSharp.dll">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="SendinBlue.ClientV3.45.dll">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="SendInBlueMarketingAutomation.dll">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
   
   <!-- This target execute after "Build" target -->

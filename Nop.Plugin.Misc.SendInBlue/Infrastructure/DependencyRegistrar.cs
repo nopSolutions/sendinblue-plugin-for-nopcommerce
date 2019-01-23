@@ -18,6 +18,7 @@ namespace Nop.Plugin.Misc.SendInBlue.Infrastructure
         public void Register(ContainerBuilder builder, ITypeFinder typeFinder, NopConfig config)
         {
             builder.RegisterType<SendInBlueEmailManager>().AsSelf().InstancePerLifetimeScope();
+            builder.RegisterType<SendInBlueMarketingAutomationManager>().AsSelf().InstancePerLifetimeScope();
             builder.RegisterType<SendInBlueMessageService>().As<IWorkflowMessageService>().InstancePerLifetimeScope();
             builder.RegisterType<SendInBlueEmailSender>().As<IEmailSender>().InstancePerLifetimeScope();
         }

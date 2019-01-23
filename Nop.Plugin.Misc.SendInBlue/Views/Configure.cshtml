@@ -174,13 +174,26 @@
                     <div class="panel panel-default">
 
                         <div class="panel-body">
+                            <p>
+                                SMTP is an standard email used everywhere. If you are configuring an email client or a Content Management System you will probably need your SMTP access.<br />
+                                SMTP password you can get on the link:  <a href="https://app-smtp.sendinblue.com/parameters?utm_source=nopcommerce_plugin&utm_medium=plugin&utm_campaign=module_link" target="_blank">get Your SMTP key</a><br />
+                            </p>
+                            <div class="form-group">
+                                <div class="col-md-3">
+                                    <nop-label asp-for="SMTPPassword" />
+                                </div>
+                                <div class="col-md-9">
+                                    <nop-editor asp-for="SMTPPassword" />
+                                    <span asp-validation-for="SMTPPassword"></span>
+                                </div>
+                            </div>
                             <div class="form-group">
                                 <div class="col-md-3">
                                     <nop-override-store-checkbox asp-for="UseSendInBlueSMTP_OverrideForStore" asp-input="UseSendInBlueSMTP" asp-store-scope="@Model.ActiveStoreScopeConfiguration" />
                                     <nop-label asp-for="UseSendInBlueSMTP" />
                                 </div>
                                 <div class="col-md-9">
-                                    <nop-editor asp-for="UseSendInBlueSMTP"/>
+                                    <nop-editor asp-for="UseSendInBlueSMTP" />
                                     <span asp-validation-for="UseSendInBlueSMTP"></span>
                                 </div>
                             </div>
@@ -190,7 +203,7 @@
                                     <nop-label asp-for="SMTPSenderId" />
                                 </div>
                                 <div class="col-md-9">
-                                    <nop-select asp-for="SMTPSenderId" asp-items=" Model.AvailableSenders"/>
+                                    <nop-select asp-for="SMTPSenderId" asp-items=" Model.AvailableSenders" />
                                     <span asp-validation-for="SMTPSenderId"></span>
                                 </div>
                             </div>
@@ -299,7 +312,7 @@
                                                 field: "Id",
                                                 title: "@T("Plugins.Misc.SendInBlue.EditTemplate")",
                                                 width: 150,
-                                                template: '<a href="#=EditLink#" target="_blank">@T("Plugins.Misc.SendInBlue.EditTemplate")</a>'
+                                                    template: '<a href="#=EditLink#?utm_source=nopcommerce_plugin&utm_medium=plugin&utm_campaign=module_link" target="_blank">@T("Plugins.Misc.SendInBlue.EditTemplate")</a>'
                                             }, {
                                                 command: [{
                                                     name: "edit",
@@ -328,7 +341,7 @@
                         The cost to send one SMS varies by country. With SendinBlue, you can send text messages to recipients in over 100 countries using SMS credit system.<br />
                         To send one SMS in a country, you need to use multiple credits and the exact number depends on the country.<br />
 
-                        You can estimate the number of SMS credits you need by using <a href="https://www.sendinblue.com/pricing#tab6" target="_blank">calculator</a><br />
+                        You can estimate the number of SMS credits you need by using <a href="https://www.sendinblue.com/pricing#tab6?utm_source=nopcommerce_plugin&utm_medium=plugin&utm_campaign=module_link" target="_blank">calculator</a><br />
                     </p>
                     <div class="form-group">
                         <div class="col-md-3">
@@ -561,7 +574,54 @@
             }
             </div>
             </nop-tab>
+            <nop-tab asp-name="tab-ma" asp-title="@T("Plugins.Misc.SendInBlue.MarketingAutomation")">
+                <script type="text/javascript">
+                    $(document).ready(function () {
+                        $("#@Html.IdFor(model => model.UseMA)").click(toggleMA);
+                        toggleMA();
+                    });
+
+                    function toggleMA() {
+                        if ($('#@Html.IdFor(model => model.UseMA)').is(':checked')) {
+                            $('#pnlMAKey').show();
+                        }
+                        else {
+                            $('#pnlMAKey').hide();
+                        }
+                    };
+                </script>
+                <div class="panel-group">
+                    <div class="panel panel-default">
+                        <div class="panel-body">
+                            <div class="form-group">
+                                <div class="col-md-3">
+                                    <nop-override-store-checkbox asp-for="UseMA_OverrideForStore" asp-input="UseMA" asp-store-scope="@Model.ActiveStoreScopeConfiguration" />
+                                    <nop-label asp-for="UseMA" />
+                                </div>
+                                <div class="col-md-9">
+                                    <nop-editor asp-for="UseMA"/>
+                                    <span asp-validation-for="UseMA"></span>
+                                </div>
+                            </div>
+                            <div class="form-group" id="pnlMAKey">
+                                <div class="col-md-3">
+                                    <nop-label asp-for="MAKey" />
+                                </div>
+                                <div class="col-md-9">
+                                    <nop-editor asp-for="MAKey" />
+                                    <span asp-validation-for="MAKey"></span>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <div class="col-md-9 col-md-offset-3">
+                                    <input type="submit" name="saveMA" class="btn btn-primary" value="@T("Admin.Common.Save")" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+         </nop-tab>
         }
     </nop-tabs>
-   
+
 </form>

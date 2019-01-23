@@ -18,6 +18,9 @@ namespace Nop.Plugin.Misc.SendInBlue.Models
         [NopResourceDisplayName("Plugins.Misc.SendInBlue.Fields.ApiKey")]
         public string ApiKey { get; set; }
 
+        [NopResourceDisplayName("Plugins.Misc.SendInBlue.Fields.MaKey")]
+        public string MAKey { get; set; }
+
         [NopResourceDisplayName("Plugins.Misc.SendInBlue.AccountInfo")]
         public string AccountInfo { get; set; }
 
@@ -44,11 +47,18 @@ namespace Nop.Plugin.Misc.SendInBlue.Models
         public string SMTPSenderId { get; set; }
         public bool SMTPSenderId_OverrideForStore { get; set; }
 
+        [NopResourceDisplayName("Plugins.Misc.SendInBlue.Fields.SMTPPassword")]
+        public string SMTPPassword { get; set; }
+
         public List<SelectListItem> AvailableSenders { get; set; }
 
         [NopResourceDisplayName("Plugins.Misc.SendInBlue.Fields.UseSMS")]
         public bool UseSMS { get; set; }
         public bool UseSMS_OverrideForStore { get; set; }
+
+        [NopResourceDisplayName("Plugins.Misc.SendInBlue.Fields.UseMA")]
+        public bool UseMA { get; set; }
+        public bool UseMA_OverrideForStore { get; set; }
 
         [NopResourceDisplayName("Plugins.Misc.SendInBlue.Fields.SMSFrom")]
         public string SMSFrom { get; set; }

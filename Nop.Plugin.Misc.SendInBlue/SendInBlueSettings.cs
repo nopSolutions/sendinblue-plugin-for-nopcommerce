@@ -11,6 +11,11 @@ namespace Nop.Plugin.Misc.SendInBlue
         public string ApiKey { get; set; }
 
         /// <summary>
+        /// Gets or sets the Marketing Automation key (Tracker ID)
+        /// </summary>
+        public string MAKey { get; set; }
+
+        /// <summary>
         /// Gets or sets the URL that will be called once the synchronization is finished
         /// </summary>
         public string UrlSync { get; set; }
@@ -41,6 +46,16 @@ namespace Nop.Plugin.Misc.SendInBlue
         public string SMTPSenderId { get; set; }
 
         /// <summary>
+        /// Gets or sets password SMTP
+        /// </summary>
+        public string SMTPPassword { get; set; }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether to use Marketing Automation
+        /// </summary>
+        public bool UseMA { get; set; }
+
+        /// <summary>
         /// Gets or sets a value indicating whether to use SMS notifications
         /// </summary>
         public bool UseSMS { get; set; }
@@ -59,5 +74,10 @@ namespace Nop.Plugin.Misc.SendInBlue
         /// Gets or sets the ids of message templates used for SMS notifications
         /// </summary>
         public List<int> SMSMessageTemplatesIds { get; set; }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether account partner already set
+        /// </summary>
+        public bool AccountPartnerSet { get; set; }
     }
 }
