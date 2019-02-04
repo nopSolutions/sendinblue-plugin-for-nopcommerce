@@ -2,7 +2,6 @@
 using Nop.Core;
 using Nop.Core.Domain.Messages;
 using Nop.Core.Infrastructure;
-using Nop.Services.Configuration;
 using Nop.Services.Media;
 using Nop.Services.Messages;
 
@@ -15,20 +14,20 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
     {
         #region Fields
 
-        private readonly ISettingService _settingService;
         private readonly IStoreContext _storeContext;
+        private readonly SendInBlueSettings _sendInBlueSettings;
 
         #endregion
 
         #region Ctor
 
         public SendInBlueEmailSender(IDownloadService downloadService,
-            ISettingService settingService,
+            INopFileProvider fileProvider,
             IStoreContext storeContext,
-            INopFileProvider fileProvider) : base(downloadService, fileProvider)
+            SendInBlueSettings sendInBlueSettings) : base(downloadService, fileProvider)
         {
-            this._settingService = settingService;
             this._storeContext = storeContext;
+            this._sendInBlueSettings = sendInBlueSettings;
         }
 
         #endregion
@@ -55,21 +54,18 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
         /// <param name="headers">Headers</param>
         public override void SendEmail(EmailAccount emailAccount, string subject, string body,
             string fromAddress, string fromName, string toAddress, string toName,
-             string replyTo = null, string replyToName = null,
+            string replyTo = null, string replyToName = null,
             IEnumerable<string> bcc = null, IEnumerable<string> cc = null,
             string attachmentFilePath = null, string attachmentFileName = null,
             int attachedDownloadId = 0, IDictionary<string, string> headers = null)
         {
-            //add header
-            var sendInBlueEmailAccountId = _settingService.GetSettingByKey<int>("SendInBlueSettings.SendInBlueEmailAccountId",
-                storeId: _storeContext.CurrentStore.Id, loadSharedValueIfNotFound: true);
-            if (sendInBlueEmailAccountId == emailAccount.Id)
-                if (headers == null)
-                    headers = new Dictionary<string, string> { { "X-Mailin-Tag", _storeContext.CurrentStore.Id.ToString() } };
-                else
-                    headers.Add("X-Mailin-Tag", _storeContext.CurrentStore.Id.ToString());
+            //add store identifier in email headers
+            if (emailAccount.Id == _sendInBlueSettings.EmailAccountId)
+            {
+                headers = headers ?? new Dictionary<string, string>();
+                headers.Add(SendInBlueDefaults.EmailCustomHeader, _storeContext.CurrentStore.Id.ToString());
+            }
 
-            //send email
             base.SendEmail(emailAccount, subject, body, fromAddress, fromName, toAddress, toName, replyTo, replyToName, bcc, cc, attachmentFilePath, attachmentFileName, attachedDownloadId, headers);
         }
 

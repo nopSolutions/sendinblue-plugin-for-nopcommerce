@@ -1,307 +1,330 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Infrastructure;
+using Microsoft.AspNetCore.Mvc.Routing;
 using Nop.Core;
+using Nop.Core.Domain.Directory;
 using Nop.Core.Domain.Orders;
+using Nop.Core.Domain.Tax;
+using Nop.Services.Catalog;
 using Nop.Services.Common;
-using Nop.Services.Configuration;
+using Nop.Services.Directory;
+using Nop.Services.Localization;
 using Nop.Services.Logging;
 using Nop.Services.Media;
 using Nop.Services.Orders;
+using Nop.Services.Seo;
 using SendinBlueMarketingAutomation.Api;
 using SendinBlueMarketingAutomation.Client;
 using SendinBlueMarketingAutomation.Model;
 
 namespace Nop.Plugin.Misc.SendInBlue.Services
 {
+    /// <summary>
+    /// Represents SendInBlue marketing automation manager
+    /// </summary>
     public class SendInBlueMarketingAutomationManager
     {
         #region Fields
 
+        private readonly CurrencySettings _currencySettings;
+        private readonly IActionContextAccessor _actionContextAccessor;
+        private readonly ICurrencyService _currencyService;
         private readonly IGenericAttributeService _genericAttributeService;
+        private readonly ILocalizationService _localizationService;
         private readonly ILogger _logger;
+        private readonly IOrderTotalCalculationService _orderTotalCalculationService;
         private readonly IPictureService _pictureService;
-        private readonly ISettingService _settingService;
-        private readonly IStoreContext _storeContext;        
+        private readonly IPriceCalculationService _priceCalculationService;
+        private readonly IProductAttributeParser _productAttributeParser;
+        private readonly IStoreContext _storeContext;
+        private readonly IUrlHelperFactory _urlHelperFactory;
+        private readonly IUrlRecordService _urlRecordService;
+        private readonly IWebHelper _webHelper;
+        private readonly IWorkContext _workContext;
+        private readonly SendInBlueSettings _sendInBlueSettings;
 
         #endregion
 
         #region Ctor
 
-        public SendInBlueMarketingAutomationManager(
+        public SendInBlueMarketingAutomationManager(CurrencySettings currencySettings,
+            IActionContextAccessor actionContextAccessor,
+            ICurrencyService currencyService,
             IGenericAttributeService genericAttributeService,
+            ILocalizationService localizationService,
             ILogger logger,
+            IOrderTotalCalculationService orderTotalCalculationService,
             IPictureService pictureService,
-            ISettingService settingService,
-            IStoreContext storeContext)
+            IPriceCalculationService priceCalculationService,
+            IProductAttributeParser productAttributeParser,
+            IStoreContext storeContext,
+            IUrlHelperFactory urlHelperFactory,
+            IUrlRecordService urlRecordService,
+            IWebHelper webHelper,
+            IWorkContext workContext,
+            SendInBlueSettings sendInBlueSettings)
         {
+            this._currencySettings = currencySettings;
+            this._actionContextAccessor = actionContextAccessor;
+            this._currencyService = currencyService;
             this._genericAttributeService = genericAttributeService;
+            this._localizationService = localizationService;
             this._logger = logger;
+            this._orderTotalCalculationService = orderTotalCalculationService;
             this._pictureService = pictureService;
-            this._settingService = settingService;
+            this._priceCalculationService = priceCalculationService;
+            this._productAttributeParser = productAttributeParser;
             this._storeContext = storeContext;
+            this._urlHelperFactory = urlHelperFactory;
+            this._urlRecordService = urlRecordService;
+            this._webHelper = webHelper;
+            this._workContext = workContext;
+            this._sendInBlueSettings = sendInBlueSettings;
         }
 
         #endregion
 
-        #region Private properties
+        #region Utilities
 
         /// <summary>
-        /// Gets a value indicating whether API key is specified
+        /// Prepare marketing automation API client
         /// </summary>
-        private bool IsConfigured => !string.IsNullOrEmpty(_settingService.LoadSetting<SendInBlueSettings>().MAKey) && _settingService.LoadSetting<SendInBlueSettings>().UseMA;
-
-        /// <summary>
-        /// Gets configuration for SendInBlue API
-        /// </summary>
-        private Configuration Config => new Configuration()
+        /// <returns>Marketing automation API client</returns>
+        private MarketingAutomationApi CreateMarketingAutomationClient()
         {
-            MaKey = new Dictionary<string, string> { { "ma-key", _settingService.LoadSetting<SendInBlueSettings>().MAKey } }
-        };
+            //validate tracker identifier
+            if (string.IsNullOrEmpty(_sendInBlueSettings.MarketingAutomationKey))
+                throw new NopException($"Marketing automation not configured");
 
-        /// <summary>
-        /// Gets a collection of functions to interact with the API endpoints of Marketing Automation 
-        /// </summary>
-        private MarketingAutomationApi MarketingAutomationApi => new MarketingAutomationApi(Config);
+            var apiConfiguration = new Configuration()
+            {
+                MaKey = new Dictionary<string, string> { [SendInBlueDefaults.MarketingAutomationKeyHeader] = _sendInBlueSettings.MarketingAutomationKey },
+                UserAgent = SendInBlueDefaults.UserAgent
+            };
+
+            return new MarketingAutomationApi(apiConfiguration);
+        }
 
         #endregion
 
-        /// <summary>
-        /// Gets shopping cart items
-        /// </summary>
-        /// <param name="cartItem"></param>
-        /// <returns>Shopping cart</returns>
-        private List<ShoppingCartItem> GetShoppingCart(ShoppingCartItem cartItem)
-        {
-            return cartItem.Customer.ShoppingCartItems
-                    .Where(sci => sci.ShoppingCartType == ShoppingCartType.ShoppingCart)
-                    .LimitPerStore(_storeContext.CurrentStore.Id)
-                    .ToList();
-        }
+        #region Methods
 
         /// <summary>
-        /// Gets a status shopping cart
-        /// </summary>
-        /// <param name="cartItem"></param>
-        /// 2 - cart is empty
-        /// <returns>StatusCart</returns>
-        private StatusCart GetStatusCart(ShoppingCartItem cartItem)
-        {
-            var cart = GetShoppingCart(cartItem);
-            if (!cart.Any())
-                return StatusCart.Deleted;
-
-            if (cart.Count() == 1)
-                return StatusCart.Created;
-
-            if (cart.Count() > 1)
-                return StatusCart.Updated;
-
-            return 0;
-        }
-
-
-        /// <summary>
-        /// Generated data for track event
+        /// Handle shopping cart changed event
         /// </summary>
         /// <param name="cartItem">Shopping cart item</param>
-        /// <returns>Object</returns>
-        private object GenerateTrackData(ShoppingCartItem cartItem)
+        public void HandleShoppingCartChangedEvent(ShoppingCartItem cartItem)
         {
-            var cart = GetShoppingCart(cartItem);
-            var products = new List<object>();
+            //whether marketing automation is enabled
+            if (!_sendInBlueSettings.UseMarketingAutomation)
+                return;
 
-            foreach (var item in cart)
-            {
-                var product = new Dictionary<string, object>()
-                {
-                    { "id", item.Product.Sku },
-                    { "name", item.Product.Name },
-                    { "variant_id", null },
-                    { "variant_id_name", item.Product.Sku },
-                    { "url", "" },
-                    { "image", _pictureService.GetPictureUrl(_pictureService.GetProductPicture(item.Product, null)) },
-                    { "quantity", item.Quantity },
-                    { "price", item.Product.Price },
-                };
-
-                products.Add(product);
-            }
-
-            var data = new Dictionary<string, object>()
-                {
-                    { "subtotal", ""},
-                    { "total_before_tax" , "" },
-                    { "tax", "" },
-                    { "discount", "" },
-                    { "total", "" },
-                    { "url", "" },
-                    { "currency", "" },
-                    { "gift_wrapping", "" },
-                    { "products", products }
-                };
-
-            var result  = new Dictionary<string, object>()
-            {
-                { "id", "cart:" + _genericAttributeService.GetAttribute<string>(cartItem.Customer, "ShoppingCartGuid")},
-                { "data",  data}
-            };
-
-            return result;
-        }
-
-
-        public void CartCreated(ShoppingCartItem cartItem)
-        {
-            if (!IsConfigured)
-                _logger.Error("SendInBlue Marketing Automation error: Plugin not configured");
-
-            _genericAttributeService.SaveAttribute(cartItem.Customer, "ShoppingCartGuid", Guid.NewGuid().ToString());
-
-            if (GetStatusCart(cartItem) == StatusCart.Created)
-            {
-
-                var obj = GenerateTrackData(cartItem);
-
-                Identify(cartItem.Customer.Email, null);
-                TrackEvent(cartItem.Customer.Email, "cart_created", obj);
-            }
-        }
-
-        public void CartUpdated(ShoppingCartItem cartItem)
-        {
-            if (!IsConfigured)
-                _logger.Error("SendInBlue Marketing Automation error: Plugin not configured");
-
-            if (GetStatusCart(cartItem) == StatusCart.Updated)
-            {
-
-                var obj = GenerateTrackData(cartItem);
-
-                Identify(cartItem.Customer.Email, null);
-                TrackEvent(cartItem.Customer.Email, "cart_updated", obj);
-            }
-        }
-
-        public void CartDeleted(ShoppingCartItem cartItem)
-        {
-            if (!IsConfigured)
-                _logger.Error("SendInBlue Marketing Automation error: Plugin not configured");
-
-            if (GetStatusCart(cartItem) == StatusCart.Deleted)
-            {
-
-                var obj = GenerateTrackData(cartItem);
-
-                Identify(cartItem.Customer.Email, null);
-                TrackEvent(cartItem.Customer.Email, "cart_deleted", obj);
-            }
-        }
-
-        public void OrderCompleted(Order order)
-        {
-            if (!IsConfigured)
-                _logger.Error("SendInBlue Marketing Automation error: Plugin not configured");
-
-            _genericAttributeService.SaveAttribute(order.Customer, "ShoppingCartGuid", Guid.NewGuid().ToString());
-
-            var products = new List<object>();
-
-            foreach (var item in order.OrderItems)
-            {
-                var product = new Dictionary<string, object>()
-                {
-                    { "id", item.Product.Sku },
-                    { "name", item.Product.Name },
-                    { "variant_id", null },
-                    { "variant_id_name", item.Product.Sku },
-                    { "url", "" },
-                    { "image", _pictureService.GetPictureUrl(_pictureService.GetProductPicture(item.Product, null)) },
-                    { "quantity", item.Quantity },
-                    { "price", item.Product.Price },
-                };
-
-                products.Add(product);
-            }
-
-            var data = new Dictionary<string, object>()
-                {
-                    { "subtotal", order.OrderSubtotalInclTax.ToString()},
-                    { "total_before_tax" , order.OrderSubtotalExclTax.ToString() },
-                    { "tax", order.OrderTax.ToString() },
-                    { "discount", order.OrderDiscount.ToString() },
-                    { "total", order.OrderTotal.ToString() },
-                    { "url", "" },
-                    { "currency", order.CustomerCurrencyCode },
-                    { "gift_wrapping", "" },
-                    { "products", products }
-                };
-
-            var result = new Dictionary<string, object>()
-            {
-                { "id", "cart:" + _genericAttributeService.GetAttribute<string>(order.Customer, "ShoppingCartGuid")},
-                { "data",  data}
-            };
-
-            Identify(order.Customer.Email, null);
-                TrackEvent(order.Customer.Email, "order_completed", result);
-        }
-
-        #region Methods (wrappers)
-
-        private void Identify(string email, object attributes)
-        {
             try
             {
-                var identify = new Identify(email, attributes);
-                MarketingAutomationApi.Identify(identify);
+                //create API client
+                var client = CreateMarketingAutomationClient();
+
+                //first, try to identify current customer
+                client.Identify(new Identify(cartItem.Customer.Email));
+
+                //get shopping cart GUID
+                var shoppingCartGuid = _genericAttributeService.GetAttribute<Guid?>(cartItem.Customer, SendInBlueDefaults.ShoppingCartGuidAttribute);
+
+                //create track event object
+                var trackEvent = new TrackEvent(cartItem.Customer.Email, string.Empty);
+
+                //get current customer's shopping cart
+                var cart = cartItem.Customer.ShoppingCartItems
+                    .Where(item => item.ShoppingCartType == ShoppingCartType.ShoppingCart)
+                    .LimitPerStore(_storeContext.CurrentStore.Id).ToList();
+
+                if (cart.Any())
+                {
+                    //get URL helper
+                    var urlHelper = _urlHelperFactory.GetUrlHelper(_actionContextAccessor.ActionContext);
+
+                    //get shopping cart amounts
+                    _orderTotalCalculationService.GetShoppingCartSubTotal(cart, _workContext.TaxDisplayType == TaxDisplayType.IncludingTax,
+                        out var cartDiscount, out _, out var cartSubtotal, out _);
+                    var cartTax = _orderTotalCalculationService.GetTaxTotal(cart, false);
+                    var cartShipping = _orderTotalCalculationService.GetShoppingCartShippingTotal(cart);
+                    var cartTotal = _orderTotalCalculationService.GetShoppingCartTotal(cart, false, false);
+
+                    //get products data by shopping cart items
+                    var productsData = cart.Where(item => item.Product != null).Select(item =>
+                    {
+                        //try to get product attribute combination
+                        var combination = _productAttributeParser.FindProductAttributeCombination(item.Product, item.AttributesXml);
+
+                        //get default product picture
+                        var picture = _pictureService.GetProductPicture(item.Product, item.AttributesXml);
+
+                        //get product SEO slug name
+                        var seName = _urlRecordService.GetSeName(item.Product);
+
+                        //create product data
+                        return new
+                        {
+                            id = item.Product.Id,
+                            name = _localizationService.GetLocalized(item.Product, x => x.Name),
+                            variant_id = combination?.Id ?? item.Product.Id,
+                            variant_id_name = combination?.Sku ?? _localizationService.GetLocalized(item.Product, x => x.Name),
+                            url = urlHelper.RouteUrl("Product", new { SeName = seName }, _webHelper.CurrentRequestProtocol),
+                            image = _pictureService.GetPictureUrl(picture),
+                            quantity = item.Quantity,
+                            price = _priceCalculationService.GetSubTotal(item),
+                        };
+                    }).ToArray();
+
+                    //prepare cart data
+                    var cartData = new
+                    {
+                        subtotal = cartSubtotal,
+                        shipping = cartShipping,
+                        total_before_tax = cartSubtotal + cartShipping,
+                        tax = cartTax,
+                        discount = cartDiscount,
+                        total = cartTotal,
+                        url = urlHelper.RouteUrl("ShoppingCart", null, _webHelper.CurrentRequestProtocol),
+                        currency = _currencyService.GetCurrencyById(_currencySettings.PrimaryStoreCurrencyId)?.CurrencyCode,
+                        //gift_wrapping = string.Empty, //currently we can't get this value
+                        products = productsData
+                    };
+
+                    //if there is a single item in the cart, so the cart is just created
+                    if (cart.Count == 1)
+                    {
+                        shoppingCartGuid = Guid.NewGuid();
+                        trackEvent.EventName = SendInBlueDefaults.CartCreatedEventName;
+                    }
+                    else
+                    {
+                        //otherwise cart is updated
+                        shoppingCartGuid = shoppingCartGuid ?? Guid.NewGuid();
+                        trackEvent.EventName = SendInBlueDefaults.CartUpdatedEventName;
+                    }
+                    trackEvent.EventData = new { id = $"cart:{shoppingCartGuid}", data = cartData };
+                }
+                else
+                {
+                    //there are no items in the cart, so the cart is deleted
+                    shoppingCartGuid = shoppingCartGuid ?? Guid.NewGuid();
+                    trackEvent.EventName = SendInBlueDefaults.CartDeletedEventName;
+                    trackEvent.EventData = new { id = $"cart:{shoppingCartGuid}" };
+                }
+
+                //track event
+                client.TrackEvent(trackEvent);
+
+                //update GUID for the current customer's shopping cart
+                _genericAttributeService.SaveAttribute(cartItem.Customer, SendInBlueDefaults.ShoppingCartGuidAttribute, shoppingCartGuid);
             }
-            catch (ApiException e)
+            catch (Exception exception)
             {
-                _logger.Error($"SendInBlue Marketing Automation identify error: {e.Message}");
+                //log full error
+                _logger.Error($"SendInBlue Marketing Automation error: {exception.Message}.", exception, cartItem.Customer);
             }
         }
 
-
-        public void TrackEvent(string email, string eventName, object attributes)
+        /// <summary>
+        /// Handle order completed event
+        /// </summary>
+        /// <param name="order">Order</param>
+        public void HandleOrderCompletedEvent(Order order)
         {
+            //whether marketing automation is enabled
+            if (!_sendInBlueSettings.UseMarketingAutomation)
+                return;
+
             try
             {
-                var trackEvent = new TrackEvent(email, eventName, attributes);
-                MarketingAutomationApi.TrackEvent(trackEvent);
+                //create API client
+                var client = CreateMarketingAutomationClient();
+
+                //first, try to identify current customer
+                client.Identify(new Identify(order.Customer.Email));
+
+                //get URL helper
+                var urlHelper = _urlHelperFactory.GetUrlHelper(_actionContextAccessor.ActionContext);
+
+                //get products data by order items
+                var productsData = order.OrderItems.Where(item => item.Product != null).Select(item =>
+                {
+                    //try to get product attribute combination
+                    var combination = _productAttributeParser.FindProductAttributeCombination(item.Product, item.AttributesXml);
+
+                    //get default product picture
+                    var picture = _pictureService.GetProductPicture(item.Product, item.AttributesXml);
+
+                    //get product SEO slug name
+                    var seName = _urlRecordService.GetSeName(item.Product);
+
+                    //create product data
+                    return new
+                    {
+                        id = item.Product.Id,
+                        name = _localizationService.GetLocalized(item.Product, x => x.Name),
+                        variant_id = combination?.Id ?? item.Product.Id,
+                        variant_id_name = combination?.Sku ?? _localizationService.GetLocalized(item.Product, x => x.Name),
+                        url = urlHelper.RouteUrl("Product", new { SeName = seName }, _webHelper.CurrentRequestProtocol),
+                        image = _pictureService.GetPictureUrl(picture),
+                        quantity = item.Quantity,
+                        price = item.PriceInclTax,
+                    };
+                }).ToArray();
+
+                //prepare cart data
+                var cartData = new
+                {
+                    subtotal = order.OrderSubtotalInclTax,
+                    shipping = order.OrderShippingInclTax,
+                    total_before_tax = order.OrderSubtotalInclTax + order.OrderShippingInclTax,
+                    tax = order.OrderTax,
+                    discount = order.OrderDiscount,
+                    total = order.OrderTotal,
+                    url = urlHelper.RouteUrl("OrderDetails", new { orderId = order.Id }, _webHelper.CurrentRequestProtocol),
+                    currency = order.CustomerCurrencyCode,
+                    //gift_wrapping = string.Empty, //currently we can't get this value
+                    products = productsData
+                };
+
+                //get shopping cart GUID
+                var shoppingCartGuid = _genericAttributeService.GetAttribute<Guid?>(order,
+                    SendInBlueDefaults.ShoppingCartGuidAttribute) ?? Guid.NewGuid();
+
+                //create track event object
+                var trackEvent = new TrackEvent(order.Customer.Email, SendInBlueDefaults.OrderCompletedEventName,
+                    eventData: new { id = $"cart:{shoppingCartGuid}", data = cartData });
+
+                //track event
+                client.TrackEvent(trackEvent);
+
+                //update GUID for the current customer's shopping cart
+                _genericAttributeService.SaveAttribute<Guid?>(order, SendInBlueDefaults.ShoppingCartGuidAttribute, null);
             }
-            catch (ApiException e)
+            catch (Exception exception)
             {
-                _logger.Error($"SendInBlue Marketing Automation trackEvent error: {e.Message}");
+                //log full error
+                _logger.Error($"SendInBlue Marketing Automation error: {exception.Message}.", exception, order.Customer);
             }
         }
 
-
-        private void TrackLink(string email, string link, object properties)
+        /// <summary>
+        /// Handle order placed event
+        /// </summary>
+        /// <param name="order">Order</param>
+        public void HandleOrderPlacedEvent(Order order)
         {
-            try
-            {
-                var trackLink = new TrackLink(email, link, properties);
-                MarketingAutomationApi.TrackLink(trackLink);
-            }
-            catch (ApiException e)
-            {
-                _logger.Error($"SendInBlue Marketing Automation trackLink error: {e.Message}");
-            }
-        }
+            //whether marketing automation is enabled
+            if (!_sendInBlueSettings.UseMarketingAutomation)
+                return;
 
-        private void TrackPage(string email, string page, object properties)
-        {
-            try
-            {
-                var trackPage = new TrackPage(email, page, properties);
-                MarketingAutomationApi.TrackPage(trackPage);
-            }
-            catch (ApiException e)
-            {
-                _logger.Error($"SendInBlue Marketing Automation trackPage error: {e.Message}");
-            }
+            //copy shopping cart GUID to order
+            var shoppingCartGuid = _genericAttributeService.GetAttribute<Guid?>(order.Customer, SendInBlueDefaults.ShoppingCartGuidAttribute);
+            _genericAttributeService.SaveAttribute(order, SendInBlueDefaults.ShoppingCartGuidAttribute, shoppingCartGuid);
         }
 
         #endregion

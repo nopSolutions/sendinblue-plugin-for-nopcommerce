@@ -1,11 +1,8 @@
-﻿@{
+﻿@model Nop.Plugin.Misc.SendInBlue.Models.ConfigurationModel
+
+@{
     Layout = "_ConfigurePlugin";
 }
-
-@using Nop.Services.Events
-@using Nop.Web.Framework.Events
-@model Nop.Plugin.Misc.SendInBlue.Models.SendInBlueModel
-@inject IEventPublisher eventPublisher
 
 @await Component.InvokeAsync("StoreScopeConfiguration")
 
@@ -23,10 +20,10 @@
                     <div class="panel-body">
                         <div class="form-group">
                             <div class="col-md-3">
-                                <nop-label asp-for="ApiKey"/>
+                                <nop-label asp-for="ApiKey" />
                             </div>
                             <div class="col-md-9">
-                                <nop-editor asp-for="ApiKey"/>
+                                <nop-editor asp-for="ApiKey" />
                                 <span asp-validation-for="ApiKey"></span>
                             </div>
                         </div>
@@ -34,7 +31,7 @@
                         {
                             <div class="form-group">
                                 <div class="col-md-3">
-                                    <nop-label asp-for="AccountInfo"/>
+                                    <nop-label asp-for="AccountInfo" />
                                 </div>
                                 <div class="col-md-9" style="white-space: pre-line">
                                     @Html.Raw(Model.AccountInfo)
@@ -43,7 +40,7 @@
                         }
                         <div class="form-group">
                             <div class="col-md-9 col-md-offset-3">
-                                <input type="submit" name="save" class="btn btn-primary" value="@T("Admin.Common.Save")"/>
+                                <input type="submit" name="save" class="btn btn-primary" value="@T("Admin.Common.Save")" />
                             </div>
                         </div>
                     </div>
@@ -53,42 +50,19 @@
         @if (!string.IsNullOrEmpty(Model.ApiKey))
         {
             <nop-tab asp-name="tab-synchronization" asp-title="@T("Plugins.Misc.SendInBlue.Synchronization")">
-                <script type="text/javascript">
+                <script>
                     $(document).ready(function () {
                         $("#progressBar").kendoProgressBar({
                             value: false,
                             type: "value"
                         }).data("kendoProgressBar");
                         $("#progressBar").hide();
-                        $("#@Html.IdFor(model => model.ListId)").change(changeListId);
-                        $("#@Html.IdFor(model => model.AutoSync)").click(toggleAutoSync);
-
-                        toggleAutoSync();
-                        changeListId();
 
                         if (@((TempData["synchronizationStart"] != null && (bool)TempData["synchronizationStart"]).ToString().ToLower())) {
                             $("#progressBar").show();
                             refresh();
                         }
                     });
-
-                    function toggleAutoSync() {
-                        if ($('#@Html.IdFor(model => model.AutoSync)').is(':checked')) {
-                            $('#pnlAutoSyncEachMinutes').show();
-                        }
-                        else {
-                            $('#pnlAutoSyncEachMinutes').hide();
-                        }
-                    };
-
-                    function changeListId() {
-                        if ($("#@Html.IdFor(model => model.ListId)").val() == "0") {
-                            $('#pnlNewListName').show();
-                        }
-                        else {
-                            $('#pnlNewListName').hide();
-                        }
-                    };
 
                     function refresh(){
                         setTimeout(function(){
@@ -115,35 +89,8 @@
                                     <nop-label asp-for="ListId" />
                                 </div>
                                 <div class="col-md-9">
-                                    <nop-select asp-for="ListId" asp-items="Model.AvailableLists"/>
+                                    <nop-select asp-for="ListId" asp-items="Model.AvailableLists" />
                                     <span asp-validation-for="ListId"></span>
-                                </div>
-                            </div>
-                            <div class="form-group" id="pnlNewListName">
-                                <div class="col-md-3">
-                                    <nop-label asp-for="NewListName" />
-                                </div>
-                                <div class="col-md-9">
-                                    <nop-editor asp-for="NewListName"/>
-                                    <span asp-validation-for="NewListName"></span>
-                                </div>
-                            </div>
-                            <div class="form-group">
-                                <div class="col-md-3">
-                                    <nop-label asp-for="AutoSync" />
-                                </div>
-                                <div class="col-md-9">
-                                    <nop-editor asp-for="AutoSync"/>
-                                    <span asp-validation-for="AutoSync"></span>
-                                </div>
-                            </div>
-                            <div class="form-group" id="pnlAutoSyncEachMinutes">
-                                <div class="col-md-3">
-                                    <nop-label asp-for="AutoSyncEachMinutes" />
-                                </div>
-                                <div class="col-md-9">
-                                    <nop-editor asp-for="AutoSyncEachMinutes"/>
-                                    <span asp-validation-for="AutoSyncEachMinutes"></span>
                                 </div>
                             </div>
                             <div class="form-group">
@@ -180,31 +127,31 @@
                             </p>
                             <div class="form-group">
                                 <div class="col-md-3">
-                                    <nop-label asp-for="SMTPPassword" />
+                                    <nop-override-store-checkbox asp-for="UseSmtp_OverrideForStore" asp-input="UseSmtp" asp-store-scope="@Model.ActiveStoreScopeConfiguration" />
+                                    <nop-label asp-for="UseSmtp" />
                                 </div>
                                 <div class="col-md-9">
-                                    <nop-editor asp-for="SMTPPassword" />
-                                    <span asp-validation-for="SMTPPassword"></span>
+                                    <nop-editor asp-for="UseSmtp" />
+                                    <span asp-validation-for="UseSmtp"></span>
                                 </div>
                             </div>
                             <div class="form-group">
                                 <div class="col-md-3">
-                                    <nop-override-store-checkbox asp-for="UseSendInBlueSMTP_OverrideForStore" asp-input="UseSendInBlueSMTP" asp-store-scope="@Model.ActiveStoreScopeConfiguration" />
-                                    <nop-label asp-for="UseSendInBlueSMTP" />
+                                    <nop-label asp-for="SmtpKey" />
                                 </div>
                                 <div class="col-md-9">
-                                    <nop-editor asp-for="UseSendInBlueSMTP" />
-                                    <span asp-validation-for="UseSendInBlueSMTP"></span>
+                                    <nop-editor asp-for="SmtpKey" />
+                                    <span asp-validation-for="SmtpKey"></span>
                                 </div>
                             </div>
                             <div class="form-group">
                                 <div class="col-md-3">
-                                    <nop-override-store-checkbox asp-for="SMTPSenderId_OverrideForStore" asp-input="SMTPSenderId" asp-store-scope="@Model.ActiveStoreScopeConfiguration" />
-                                    <nop-label asp-for="SMTPSenderId" />
+                                    <nop-override-store-checkbox asp-for="SenderId_OverrideForStore" asp-input="SenderId" asp-store-scope="@Model.ActiveStoreScopeConfiguration" />
+                                    <nop-label asp-for="SenderId" />
                                 </div>
                                 <div class="col-md-9">
-                                    <nop-select asp-for="SMTPSenderId" asp-items=" Model.AvailableSenders" />
-                                    <span asp-validation-for="SMTPSenderId"></span>
+                                    <nop-select asp-for="SenderId" asp-items=" Model.AvailableSenders" />
+                                    <span asp-validation-for="SenderId"></span>
                                 </div>
                             </div>
                             <div class="form-group">
@@ -215,8 +162,8 @@
                         </div>
                     </div>
 
-                    @if(Model.UseSendInBlueSMTP)
-                    { 
+                    @if (Model.UseSmtp)
+                    {
                         <div class="panel panel-default">
                             <div class="panel-body">
                                 <div id="messages-grid"></div>
@@ -312,7 +259,7 @@
                                                 field: "Id",
                                                 title: "@T("Plugins.Misc.SendInBlue.EditTemplate")",
                                                 width: 150,
-                                                    template: '<a href="#=EditLink#?utm_source=nopcommerce_plugin&utm_medium=plugin&utm_campaign=module_link" target="_blank">@T("Plugins.Misc.SendInBlue.EditTemplate")</a>'
+                                                    template: '<a href="#=EditLink#" target="_blank">@T("Plugins.Misc.SendInBlue.EditTemplate")</a>'
                                             }, {
                                                 command: [{
                                                     name: "edit",
@@ -334,282 +281,301 @@
                 </div>
             </nop-tab>
             <nop-tab asp-name="tab-sms" asp-title="@T("Plugins.Misc.SendInBlue.SMS")">
-            <div class="panel-group">
-            <div class="panel panel-default">
-                <div class="panel-body">
-                    <p>
-                        The cost to send one SMS varies by country. With SendinBlue, you can send text messages to recipients in over 100 countries using SMS credit system.<br />
-                        To send one SMS in a country, you need to use multiple credits and the exact number depends on the country.<br />
-
-                        You can estimate the number of SMS credits you need by using <a href="https://www.sendinblue.com/pricing#tab6?utm_source=nopcommerce_plugin&utm_medium=plugin&utm_campaign=module_link" target="_blank">calculator</a><br />
-                    </p>
-                    <div class="form-group">
-                        <div class="col-md-3">
-                            <nop-override-store-checkbox asp-for="UseSMS_OverrideForStore" asp-input="UseSMS" asp-store-scope="@Model.ActiveStoreScopeConfiguration" />
-                            <nop-label asp-for="UseSMS" />
-                        </div>
-                        <div class="col-md-9">
-                            <nop-editor asp-for="UseSMS"/>
-                            <span asp-validation-for="UseSMS"></span>
-                        </div>
-                    </div>
-                    <div class="form-group">
-                        <div class="col-md-3">
-                            <nop-override-store-checkbox asp-for="SMSFrom_OverrideForStore" asp-input="SMSFrom" asp-store-scope="@Model.ActiveStoreScopeConfiguration" />
-                            <nop-label asp-for="SMSFrom" />
-                        </div>
-                        <div class="col-md-9">
-                            <nop-editor asp-for="SMSFrom"/>
-                            <span asp-validation-for="SMSFrom"></span>
-                        </div>
-                    </div>
-                    <div class="form-group">
-                        <div class="col-md-3">
-                            <nop-label asp-for="MyPhoneNumber" />
-                        </div>
-                        <div class="col-md-9">
-                            <nop-editor asp-for="MyPhoneNumber"/>
-                            <span asp-validation-for="MyPhoneNumber"></span>
-                        </div>
-                    </div>
-                    <div class="form-group">
-                        <div class="col-md-9 col-md-offset-3">
-                            <input type="submit" name="saveSMS" class="btn btn-primary" value="@T("Admin.Common.Save")" />
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            @if (Model.UseSMS)
-            {
-                <div class="panel panel-default">
-
-                    <script type="text/javascript">
-                        function toggleLoadedAllowedTokens() {
-                            $('#pnlAllowedTokens').toggle();
-                            if ($('#pnlAllowedTokens').css('display') == 'none') {
-                                $('#allowedTokensShowHide').html('@T("Admin.Common.Show")');
-                            }
-                            else {
-                                $('#allowedTokensShowHide').html('@T("Admin.Common.Hide")');
-                            }
-                        }
-
-                    </script>
-
-                    <div class="panel-body">
-                        <div class="form-group">
-                            <div class="col-md-3">
-                                <nop-label asp-for="AllowedTokens" />
-                            </div>
-                            <div class="col-md-9">
-                                <a id="allowedTokensShowHide" href="javascript:toggleLoadedAllowedTokens();">@T("Admin.Common.Show")</a>
-                                <div id="pnlAllowedTokens" style="display: none">
-                                    @Model.AllowedTokens
-                                </div>
-                            </div>
-                        </div>
-                        <div id="sms-grid"></div>
-
-                        <script>
-                            $(document).ready(function () {
-                                $("#sms-grid").kendoGrid({
-                                    dataSource: {
-                                        type: "json",
-                                        transport: {
-                                            read: {
-                                                url: "@Html.Raw(Url.Action("SMSList", "SendInBlue"))",
-                                                type: "POST",
-                                                dataType: "json"
-                                            },
-                                            create: {
-                                                url: "@Html.Raw(Url.Action("SMSAdd", "SendInBlue"))",
-                                                type: "POST",
-                                                dataType: "json",
-                                                data: addAntiForgeryToken
-                                            },
-                                            update: {
-                                                url:"@Html.Raw(Url.Action("SMSUpdate", "SendInBlue"))",
-                                                type: "POST",
-                                                dataType: "json"
-                                            },
-                                            destroy: {
-                                                url: "@Html.Raw(Url.Action("SMSDelete", "SendInBlue"))",
-                                                type: "POST",
-                                                dataType: "json",
-                                                data: addAntiForgeryToken
-                                            }
-                                        },
-                                        schema: {
-                                            data: "Data",
-                                            total: "Total",
-                                            errors: "Errors",
-                                            model: {
-                                                id: "Id",
-                                                fields: {
-                                                    MessageId: { editable: true, type: "number" },
-                                                    Name: { editable: false, type: "string" },
-                                                    SMSActive: { editable: true, type: "boolean" },
-                                                    PhoneTypeId: { editable: true, type: "number" },
-                                                    PhoneType: { editable: false, type: "string" },
-                                                    Text: { editable: true, type: "string" },
-                                                    Id: { editable: false, type: "number" }
-                                                }
-                                            }
-                                        },
-                                        requestEnd: function (e) {
-                                            if (e.type == "create" || e.type == "update") {
-                                                this.read();
-                                            }
-                                        },
-                                        error: function(e) {
-                                            display_kendoui_grid_error(e);
-                                            this.cancelChanges();
-                                        },
-                                        serverPaging: true,
-                                        serverFiltering: true,
-                                        serverSorting: true
-                                    },
-                                    pageable: {
-                                        refresh: true,
-                                        numeric: false,
-                                        previousNext: false,
-                                        info: false
-                                    },
-                                    toolbar: [{ name: "create", text: "@T("Plugins.Misc.SendInBlue.AddNewSMSNotification")" }],
-                                    edit: function(e) {
-                                        if (e.model.isNew()) {
-                                            if (messageTemplates.length > 0) {
-                                                e.model.MessageId = messageTemplates[0].Id;
-                                            }
-                                        }
-                                    },
-                                    editable: {
-                                        confirmation: false,
-                                        mode: "inline"
-                                    },
-                                    scrollable: false,
-                                    columns: [{
-                                        field: "MessageId",
-                                        title: "@T("Admin.ContentManagement.MessageTemplates.Fields.Name")",
-                                        width: 300,
-                                        template: "#=Name#",
-                                        editor: function templatesDropDownEditor(container, options) {
-                                            $('<input required data-text-field="Name" data-value-field="Id" data-bind="value:MessageId" name="MessageId"/>')
-                                                .appendTo(container)
-                                                .kendoDropDownList({
-                                                    autoBind: false,
-                                                    dataSource: messageTemplates
-                                                });
-                                        }
-                                    }, {
-                                        field: "SMSActive",
-                                        title: "@T("Plugins.Misc.SendInBlue.SMSActive")",
-                                        width: 100,
-                                        headerAttributes: { style: "text-align:center" },
-                                        attributes: { style: "text-align:center" },
-                                        template: '# if(SMSActive) {# <i class="fa fa-check true-icon"></i> #} else {# <i class="fa fa-close false-icon"></i> #} #'
-                                    }, {
-                                        field: "PhoneTypeId",
-                                        title: "@T("Plugins.Misc.SendInBlue.PhoneType")",
-                                        width: 200,
-                                        template: "#=PhoneType#",
-                                        editor: function phoneTypeDropDownEditor(container, options) {
-                                            $('<input required data-text-field="Name" data-value-field="Id" data-bind="value:PhoneTypeId"/>')
-                                                .appendTo(container)
-                                                .kendoDropDownList({
-                                                    autoBind: false,
-                                                    dataSource: [
-                                                        { Id : 0, Name : "@T("Plugins.Misc.SendInBlue.MyPhone")" },
-                                                        { Id : 1, Name : "@T("Plugins.Misc.SendInBlue.CustomerPhone")" },
-                                                        { Id : 2, Name : "@T("Plugins.Misc.SendInBlue.BillingAddressPhone")" }
-                                                    ]
-                                                });
-                                        }
-                                    }, {
-                                        field: "Text",
-                                        title: "@T("Plugins.Misc.SendInBlue.SMSText")",
-                                        width: 500,
-                                        editor: function textareaEditor(container, options) {
-                                            $('<textarea data-bind="value:Text" style="width: ' + container.width() + 'px; height: ' + (container.height() * 3) + 'px" />')
-                                                .appendTo(container);
-                                        }
-                                    }, {
-                                        command: [{
-                                            name: "edit",
-                                            text: {
-                                                edit: "@T("Admin.Common.Edit")",
-                                                update: "@T("Admin.Common.Update")",
-                                                cancel: "@T("Admin.Common.Cancel")"
-                                            }
-                                        }, {
-                                            name: "destroy",
-                                            text: "@T("Admin.Common.Delete")"
-                                        }],
-                                        width: 200
-                                    }]
-                                });
-                            });
-
-                            //local datasource
-                            var messageTemplates = [
-                                @for (var i = 0; i < Model.AvailableMessageTemplates.Count; i++)
-                                {
-                                    var messageTemplate = Model.AvailableMessageTemplates[i];
-                                    <text>
-                                        {
-                                            Id: @(messageTemplate.Value),
-                                            Name: "@(Html.Raw(JavaScriptEncoder.Default.Encode(messageTemplate.Text)))"
-                                        }
-                                    </text>
-                                    if (i != Model.AvailableMessageTemplates.Count - 1)
-                                    {
-                                        <text>,</text>
-                                    }
-                                }
-                            ];
-                        </script>
-                    </div>
-                </div>
-            }
-            </div>
-            </nop-tab>
-            <nop-tab asp-name="tab-ma" asp-title="@T("Plugins.Misc.SendInBlue.MarketingAutomation")">
-                <script type="text/javascript">
-                    $(document).ready(function () {
-                        $("#@Html.IdFor(model => model.UseMA)").click(toggleMA);
-                        toggleMA();
-                    });
-
-                    function toggleMA() {
-                        if ($('#@Html.IdFor(model => model.UseMA)').is(':checked')) {
-                            $('#pnlMAKey').show();
-                        }
-                        else {
-                            $('#pnlMAKey').hide();
-                        }
-                    };
-                </script>
                 <div class="panel-group">
                     <div class="panel panel-default">
                         <div class="panel-body">
+                            <p>
+                                The cost to send one SMS varies by country. With SendinBlue, you can send text messages to recipients in over 100 countries using SMS credit system.<br />
+                                To send one SMS in a country, you need to use multiple credits and the exact number depends on the country.<br />
+
+                                You can estimate the number of SMS credits you need by using <a href="https://www.sendinblue.com/pricing?utm_source=nopcommerce_plugin&utm_medium=plugin&utm_campaign=module_link" target="_blank">calculator</a><br />
+                            </p>
                             <div class="form-group">
                                 <div class="col-md-3">
-                                    <nop-override-store-checkbox asp-for="UseMA_OverrideForStore" asp-input="UseMA" asp-store-scope="@Model.ActiveStoreScopeConfiguration" />
-                                    <nop-label asp-for="UseMA" />
+                                    <nop-override-store-checkbox asp-for="UseSmsNotifications_OverrideForStore" asp-input="UseSmsNotifications" asp-store-scope="@Model.ActiveStoreScopeConfiguration" />
+                                    <nop-label asp-for="UseSmsNotifications" />
                                 </div>
                                 <div class="col-md-9">
-                                    <nop-editor asp-for="UseMA"/>
-                                    <span asp-validation-for="UseMA"></span>
+                                    <nop-editor asp-for="UseSmsNotifications" />
+                                    <span asp-validation-for="UseSmsNotifications"></span>
                                 </div>
                             </div>
-                            <div class="form-group" id="pnlMAKey">
+                            <div class="form-group">
                                 <div class="col-md-3">
-                                    <nop-label asp-for="MAKey" />
+                                    <nop-override-store-checkbox asp-for="SmsSenderName_OverrideForStore" asp-input="SmsSenderName" asp-store-scope="@Model.ActiveStoreScopeConfiguration" />
+                                    <nop-label asp-for="SmsSenderName" />
                                 </div>
                                 <div class="col-md-9">
-                                    <nop-editor asp-for="MAKey" />
-                                    <span asp-validation-for="MAKey"></span>
+                                    <nop-editor asp-for="SmsSenderName" />
+                                    <span asp-validation-for="SmsSenderName"></span>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <div class="col-md-3">
+                                    <nop-label asp-for="StoreOwnerPhoneNumber" />
+                                </div>
+                                <div class="col-md-9">
+                                    <nop-editor asp-for="StoreOwnerPhoneNumber" />
+                                    <span asp-validation-for="StoreOwnerPhoneNumber"></span>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <div class="col-md-9 col-md-offset-3">
+                                    <input type="submit" name="saveSMS" class="btn btn-primary" value="@T("Admin.Common.Save")" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    @if (Model.UseSmsNotifications)
+                    {
+                        <div class="panel panel-default">
+                            <div class="panel-body">
+                                <div class="form-group">
+                                    <div class="col-md-3">
+                                        <nop-label asp-for="AllowedTokens" />
+                                    </div>
+                                    <div class="col-md-9">
+                                        <a id="allowedTokensShowHide" href="javascript:toggleLoadedAllowedTokens();">@T("Admin.Common.Show")</a>
+                                        <div id="pnlAllowedTokens" style="display: none; white-space: pre-line">
+                                            <div class="form-text-row">@Model.AllowedTokens</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <script>
+                                    function toggleLoadedAllowedTokens() {
+                                        $('#pnlAllowedTokens').toggle();
+                                        if ($('#pnlAllowedTokens').css('display') == 'none') {
+                                            $('#allowedTokensShowHide').html('@T("Admin.Common.Show")');
+                                        } else {
+                                            $('#allowedTokensShowHide').html('@T("Admin.Common.Hide")');
+                                        }
+                                    }
+                                </script>
+
+                                <div id="sms-grid"></div>
+                                <script>
+                                    $(document).ready(function () {
+                                        $("#sms-grid").kendoGrid({
+                                            dataSource: {
+                                                type: "json",
+                                                transport: {
+                                                    read: {
+                                                        url: "@Html.Raw(Url.Action("SMSList", "SendInBlue"))",
+                                                        type: "POST",
+                                                        dataType: "json"
+                                                    },
+                                                    create: {
+                                                        url: "@Html.Raw(Url.Action("SMSAdd", "SendInBlue"))",
+                                                        type: "POST",
+                                                        dataType: "json",
+                                                        data: addAntiForgeryToken
+                                                    },
+                                                    update: {
+                                                        url:"@Html.Raw(Url.Action("SMSUpdate", "SendInBlue"))",
+                                                        type: "POST",
+                                                        dataType: "json"
+                                                    },
+                                                    destroy: {
+                                                        url: "@Html.Raw(Url.Action("SMSDelete", "SendInBlue"))",
+                                                        type: "POST",
+                                                        dataType: "json",
+                                                        data: addAntiForgeryToken
+                                                    }
+                                                },
+                                                schema: {
+                                                    data: "Data",
+                                                    total: "Total",
+                                                    errors: "Errors",
+                                                    model: {
+                                                        id: "Id",
+                                                        fields: {
+                                                            MessageId: { editable: true, type: "number" },
+                                                            Name: { editable: false, type: "string" },
+                                                            PhoneTypeId: { editable: true, type: "number" },
+                                                            PhoneType: { editable: false, type: "string" },
+                                                            Text: { editable: true, type: "string" },
+                                                            Id: { editable: false, type: "number" }
+                                                        }
+                                                    }
+                                                },
+                                                requestEnd: function (e) {
+                                                    if (e.type == "create" || e.type == "update") {
+                                                        this.read();
+                                                    }
+                                                },
+                                                error: function(e) {
+                                                    display_kendoui_grid_error(e);
+                                                    this.cancelChanges();
+                                                },
+                                                serverPaging: true,
+                                                serverFiltering: true,
+                                                serverSorting: true
+                                            },
+                                            pageable: {
+                                                refresh: true,
+                                                numeric: false,
+                                                previousNext: false,
+                                                info: false
+                                            },
+                                            toolbar: [{ name: "create", text: "@T("Plugins.Misc.SendInBlue.AddNewSMSNotification")" }],
+                                            edit: function(e) {
+                                                if (e.model.isNew()) {
+                                                    if (messageTemplates.length > 0) {
+                                                        e.model.MessageId = messageTemplates[0].Id;
+                                                    }
+                                                }
+                                            },
+                                            editable: {
+                                                confirmation: false,
+                                                mode: "inline"
+                                            },
+                                            scrollable: false,
+                                            columns: [{
+                                                field: "MessageId",
+                                                title: "@T("Admin.ContentManagement.MessageTemplates.Fields.Name")",
+                                                width: 300,
+                                                template: "#=Name#",
+                                                editor: function templatesDropDownEditor(container, options) {
+                                                    $('<input required data-text-field="Name" data-value-field="Id" data-bind="value:MessageId" name="MessageId"/>')
+                                                        .appendTo(container)
+                                                        .kendoDropDownList({
+                                                            autoBind: false,
+                                                            dataSource: messageTemplates
+                                                        });
+                                                }
+                                            }, {
+                                                field: "PhoneTypeId",
+                                                title: "@T("Plugins.Misc.SendInBlue.PhoneType")",
+                                                width: 200,
+                                                template: "#=PhoneType#",
+                                                editor: function phoneTypeDropDownEditor(container, options) {
+                                                    $('<input required data-text-field="Name" data-value-field="Id" data-bind="value:PhoneTypeId"/>')
+                                                        .appendTo(container)
+                                                        .kendoDropDownList({
+                                                            autoBind: false,
+                                                            dataSource: [
+                                                                { Id : 0, Name : "@T("Plugins.Misc.SendInBlue.MyPhone")" },
+                                                                { Id : 1, Name : "@T("Plugins.Misc.SendInBlue.CustomerPhone")" },
+                                                                { Id : 2, Name : "@T("Plugins.Misc.SendInBlue.BillingAddressPhone")" }
+                                                            ]
+                                                        });
+                                                }
+                                            }, {
+                                                field: "Text",
+                                                title: "@T("Plugins.Misc.SendInBlue.SMSText")",
+                                                width: 500,
+                                                editor: function textareaEditor(container, options) {
+                                                    $('<textarea data-bind="value:Text" style="width: ' + container.width() + 'px; height: ' + (container.height() * 3) + 'px" />')
+                                                        .appendTo(container);
+                                                }
+                                            }, {
+                                                command: [{
+                                                    name: "edit",
+                                                    text: {
+                                                        edit: "@T("Admin.Common.Edit")",
+                                                        update: "@T("Admin.Common.Update")",
+                                                        cancel: "@T("Admin.Common.Cancel")"
+                                                    }
+                                                }, {
+                                                    name: "destroy",
+                                                    text: "@T("Admin.Common.Delete")"
+                                                }],
+                                                width: 200
+                                            }]
+                                        });
+                                    });
+
+                                    //local datasource
+                                    var messageTemplates = [
+                                        @for (var i = 0; i < Model.AvailableMessageTemplates.Count; i++)
+                                        {
+                                            var messageTemplate = Model.AvailableMessageTemplates[i];
+                                            <text>
+                                                {
+                                                    Id: @(messageTemplate.Value),
+                                                    Name: "@(Html.Raw(JavaScriptEncoder.Default.Encode(messageTemplate.Text)))"
+                                                }
+                                            </text>
+                                            if (i != Model.AvailableMessageTemplates.Count - 1)
+                                            {
+                                                <text>,</text>
+                                            }
+                                        }
+                                    ];
+                                </script>
+                            </div>
+                        </div>
+                    }
+
+                    <div class="panel panel-default">
+                        <div class="panel-heading">
+                            @T("Plugins.Misc.SendInBlue.SMS.Campaigns")
+                        </div>
+                        <div class="panel-body">
+                            <div class="form-group">
+                                <div class="col-md-3">
+                                    <nop-label asp-for="CampaignListId" />
+                                </div>
+                                <div class="col-md-9">
+                                    <nop-select asp-for="CampaignListId" asp-items="Model.AvailableLists" />
+                                    <span asp-validation-for="CampaignListId"></span>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <div class="col-md-3">
+                                    <nop-label asp-for="CampaignSenderName" />
+                                </div>
+                                <div class="col-md-9">
+                                    <nop-editor asp-for="CampaignSenderName" />
+                                    <span asp-validation-for="CampaignSenderName"></span>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <div class="col-md-3">
+                                    <nop-label asp-for="CampaignText" />
+                                </div>
+                                <div class="col-md-9">
+                                    <nop-textarea asp-for="CampaignText" />
+                                    <span asp-validation-for="CampaignText"></span>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <div class="col-md-9 col-md-offset-3">
+                                    <input type="submit" name="submitCampaign" class="btn btn-primary" value="@T("Plugins.Misc.SendInBlue.SMS.Campaigns.Submit")" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </nop-tab>
+            <nop-tab asp-name="tab-ma" asp-title="@T("Plugins.Misc.SendInBlue.MarketingAutomation")">
+                <div class="panel-group">
+                    <div class="panel panel-default">
+                        <div class="panel-body">
+                            @if (Model.MarketingAutomationDisabled)
+                            {
+                                <p>
+                                    Your Marketing Automation platform is disabled, to activate it, go to this <a href="https://automation.sendinblue.com/?utm_source=nopcommerce_plugin&utm_medium=plugin&utm_campaign=module_link" target="_blank">page</a> and click on the TRY AUTOMATION FOR FREE button.
+                                </p>
+                            }
+                            <div class="form-group">
+                                <div class="col-md-3">
+                                    <nop-override-store-checkbox asp-for="UseMarketingAutomation_OverrideForStore" asp-input="UseMarketingAutomation" asp-store-scope="@Model.ActiveStoreScopeConfiguration" />
+                                    <nop-label asp-for="UseMarketingAutomation" />
+                                </div>
+                                <div class="col-md-9">
+                                    <nop-editor asp-for="UseMarketingAutomation" />
+                                    <span asp-validation-for="UseMarketingAutomation"></span>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <div class="col-md-3">
+                                    <nop-label asp-for="MarketingAutomationKey" />
+                                </div>
+                                <div class="col-md-9">
+                                    <nop-editor asp-for="MarketingAutomationKey" />
+                                    <span asp-validation-for="MarketingAutomationKey"></span>
                                 </div>
                             </div>
                             <div class="form-group">
@@ -620,8 +586,7 @@
                         </div>
                     </div>
                 </div>
-         </nop-tab>
+            </nop-tab>
         }
     </nop-tabs>
-
 </form>

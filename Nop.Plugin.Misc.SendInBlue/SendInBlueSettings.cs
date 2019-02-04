@@ -1,8 +1,10 @@
-﻿using System.Collections.Generic;
-using Nop.Core.Configuration;
+﻿using Nop.Core.Configuration;
 
 namespace Nop.Plugin.Misc.SendInBlue
 {
+    /// <summary>
+    /// Represents a SendInBlue settings
+    /// </summary>
     public class SendInBlueSettings : ISettings
     {
         /// <summary>
@@ -11,73 +13,63 @@ namespace Nop.Plugin.Misc.SendInBlue
         public string ApiKey { get; set; }
 
         /// <summary>
-        /// Gets or sets the Marketing Automation key (Tracker ID)
-        /// </summary>
-        public string MAKey { get; set; }
-
-        /// <summary>
-        /// Gets or sets the URL that will be called once the synchronization is finished
-        /// </summary>
-        public string UrlSync { get; set; }
-
-        /// <summary>
-        /// Gets or sets the unsubscribe event webhook id 
-        /// </summary>
-        public int UnsubscribeWebhookId { get; set; }
-
-        /// <summary>
-        /// Gets or sets the list id  for synchronization
+        /// Gets or sets the identifier of list to synchronize contacts
         /// </summary>
         public int ListId { get; set; }
 
         /// <summary>
-        /// Gets or sets a value indicating whether to use SendInBlue SMTP
+        /// Gets or sets the identifier of unsubscribe event webhook
         /// </summary>
-        public bool UseSendInBlueSMTP { get; set; }
+        public int UnsubscribeWebhookId { get; set; }
 
         /// <summary>
-        /// Gets or sets the SendInBlue SMTP email account id
+        /// Gets or sets a value indicating whether partner value already set
         /// </summary>
-        public int SendInBlueEmailAccountId { get; set; }
+        public bool PartnerValueSet { get; set; }
 
         /// <summary>
-        /// Gets or sets the id of email sender
+        /// Gets or sets the SMTP key (Master password)
         /// </summary>
-        public string SMTPSenderId { get; set; }
+        public string SmtpKey { get; set; }
 
         /// <summary>
-        /// Gets or sets password SMTP
+        /// Gets or sets a value indicating whether to use SMTP (for transactional emails)
         /// </summary>
-        public string SMTPPassword { get; set; }
+        public bool UseSmtp { get; set; }
 
         /// <summary>
-        /// Gets or sets a value indicating whether to use Marketing Automation
+        /// Gets or sets the identifier of sender (for transactional emails)
         /// </summary>
-        public bool UseMA { get; set; }
+        public string SenderId { get; set; }
+
+        /// <summary>
+        /// Gets or sets the identifier of email account (for transactional emails)
+        /// </summary>
+        public int EmailAccountId { get; set; }
 
         /// <summary>
         /// Gets or sets a value indicating whether to use SMS notifications
         /// </summary>
-        public bool UseSMS { get; set; }
+        public bool UseSmsNotifications { get; set; }
 
         /// <summary>
         /// Gets or sets the SMS sender name
         /// </summary>
-        public string SMSFrom { get; set; }
+        public string SmsSenderName { get; set; }
 
         /// <summary>
-        /// Gets or sets the phone number for SMS notifications
+        /// Gets or sets the store owner phone number for SMS notifications
         /// </summary>
-        public string MyPhoneNumber { get; set; }
+        public string StoreOwnerPhoneNumber { get; set; }
 
         /// <summary>
-        /// Gets or sets the ids of message templates used for SMS notifications
+        /// Gets or sets the Marketing Automation key (Tracker ID)
         /// </summary>
-        public List<int> SMSMessageTemplatesIds { get; set; }
+        public string MarketingAutomationKey { get; set; }
 
         /// <summary>
-        /// Gets or sets a value indicating whether account partner already set
+        /// Gets or sets a value indicating whether to use Marketing Automation
         /// </summary>
-        public bool AccountPartnerSet { get; set; }
+        public bool UseMarketingAutomation { get; set; }
     }
 }
