@@ -198,14 +198,13 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
                     if (cart.Count == 1)
                     {
                         shoppingCartGuid = Guid.NewGuid();
-                        trackEvent.EventName = SendInBlueDefaults.CartCreatedEventName;
                     }
                     else
                     {
                         //otherwise cart is updated
                         shoppingCartGuid = shoppingCartGuid ?? Guid.NewGuid();
-                        trackEvent.EventName = SendInBlueDefaults.CartUpdatedEventName;
                     }
+                    trackEvent.EventName = SendInBlueDefaults.CartUpdatedEventName;
                     trackEvent.EventData = new { id = $"cart:{shoppingCartGuid}", data = cartData };
                 }
                 else

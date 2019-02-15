@@ -83,6 +83,8 @@ namespace Nop.Plugin.Misc.SendInBlue
             _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Misc.SendInBlue.BillingAddressPhone", "Billing address phone number");
             _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Misc.SendInBlue.CustomerPhone", "Customer phone number");
             _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Misc.SendInBlue.EditTemplate", "Edit template");
+            _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Misc.SendInBlue.Fields.AllowedTokens", "Allowed message tokens");
+            _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Misc.SendInBlue.Fields.AllowedTokens.Hint", "This is a list of the message tokens you can use in your SMS.");
             _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Misc.SendInBlue.Fields.ApiKey", "API key");
             _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Misc.SendInBlue.Fields.ApiKey.Hint", "Input your SendInBlue account API key.");
             _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Misc.SendInBlue.Fields.CampaignList", "List");
@@ -163,6 +165,8 @@ namespace Nop.Plugin.Misc.SendInBlue
             _localizationService.DeletePluginLocaleResource("Plugins.Misc.SendInBlue.CustomerPhone");
             _localizationService.DeletePluginLocaleResource("Plugins.Misc.SendInBlue.EditTemplate");
             _localizationService.DeletePluginLocaleResource("Plugins.Misc.SendInBlue.EditTemplate");
+            _localizationService.DeletePluginLocaleResource("Plugins.Misc.SendInBlue.Fields.AllowedTokens");
+            _localizationService.DeletePluginLocaleResource("Plugins.Misc.SendInBlue.Fields.AllowedTokens.Hint");
             _localizationService.DeletePluginLocaleResource("Plugins.Misc.SendInBlue.Fields.ApiKey");
             _localizationService.DeletePluginLocaleResource("Plugins.Misc.SendInBlue.Fields.ApiKey.Hint");
             _localizationService.DeletePluginLocaleResource("Plugins.Misc.SendInBlue.Fields.CampaignList");

@@ -2,7 +2,7 @@
   "Group": "Misc",
   "FriendlyName": "SendInBlue",
   "SystemName": "Misc.SendInBlue",
-  "Version": "3.00",
+  "Version": "3.01",
   "SupportedVersions": [ "4.10" ],
   "Author": "nopCommerce team",
   "DisplayOrder": 1,

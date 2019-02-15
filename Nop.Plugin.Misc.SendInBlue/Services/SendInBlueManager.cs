@@ -146,6 +146,7 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
                         $"{SendInBlueDefaults.FirstNameServiceAttribute};" +
                         $"{SendInBlueDefaults.LastNameServiceAttribute};" +
                         $"{SendInBlueDefaults.UsernameServiceAttribute};" +
+                        $"{SendInBlueDefaults.SMSServiceAttribute};" +
                         $"{SendInBlueDefaults.PhoneServiceAttribute};" +
                         $"{SendInBlueDefaults.CountryServiceAttribute};" +
                         $"{SendInBlueDefaults.StoreIdServiceAttribute}";
@@ -155,6 +156,8 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
                         var lastName = string.Empty;
                         var phone = string.Empty;
                         var countryName = string.Empty;
+                        var SMS = string.Empty;
+
                         var customer = _customerService.GetCustomerByEmail(subscription.Email);
                         if (customer != null)
                         {
@@ -162,18 +165,23 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
                             lastName = _genericAttributeService.GetAttribute<string>(customer, NopCustomerDefaults.LastNameAttribute);
                             phone = _genericAttributeService.GetAttribute<string>(customer, NopCustomerDefaults.PhoneAttribute);
                             var countryId = _genericAttributeService.GetAttribute<int>(customer, NopCustomerDefaults.CountryIdAttribute);
-                            countryName = _countryService.GetCountryById(countryId)?.Name;
+                            var country = _countryService.GetCountryById(countryId);
+                            countryName = country?.Name;
+                            var countryISOCode = country?.NumericIsoCode ?? 0;
+                            if (countryISOCode > 0)
+                                SMS = phone.Replace("+" + ISO3166.FromISOCode(countryISOCode).DialCodes.FirstOrDefault().Replace(" ", ""), "");
                         }
                         return $"{all}\n" +
                             $"{subscription.Email};" +
                             $"{firstName};" +
                             $"{lastName};" +
                             $"{customer?.Username};" +
+                            $"{SMS};" +
                             $"{phone};" +
                             $"{countryName};" +
                             $"{subscription.StoreId}";
                     });
-
+                    
                     //prepare data to import
                     var requestContactImport = new RequestContactImport
                     {
@@ -368,6 +376,7 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
                     var firstName = string.Empty;
                     var lastName = string.Empty;
                     var phone = string.Empty;
+                    var SMS = string.Empty;
                     var countryName = string.Empty;
                     var customer = _customerService.GetCustomerByEmail(subscription.Email);
                     if (customer != null)
@@ -376,13 +385,20 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
                         lastName = _genericAttributeService.GetAttribute<string>(customer, NopCustomerDefaults.LastNameAttribute);
                         phone = _genericAttributeService.GetAttribute<string>(customer, NopCustomerDefaults.PhoneAttribute);
                         var countryId = _genericAttributeService.GetAttribute<int>(customer, NopCustomerDefaults.CountryIdAttribute);
-                        countryName = _countryService.GetCountryById(countryId)?.Name;
+                        var country = _countryService.GetCountryById(countryId);
+                        countryName = country?.Name;
+
+                        var countryISOCode = country?.NumericIsoCode ?? 0;
+                        if (countryISOCode > 0)
+                            SMS = phone.Replace("+" + ISO3166.FromISOCode(countryISOCode).DialCodes.FirstOrDefault().Replace(" ", ""), "");
+
                     }
                     var attributes = new Dictionary<string, string>
                     {
                         [SendInBlueDefaults.FirstNameServiceAttribute] = firstName,
                         [SendInBlueDefaults.LastNameServiceAttribute] = lastName,
                         [SendInBlueDefaults.UsernameServiceAttribute] = customer?.Username,
+                        [SendInBlueDefaults.SMSServiceAttribute] = SMS,
                         [SendInBlueDefaults.PhoneServiceAttribute] = phone,
                         [SendInBlueDefaults.CountryServiceAttribute] = countryName,
                         [SendInBlueDefaults.StoreIdServiceAttribute] = subscription.StoreId.ToString()
@@ -562,7 +578,7 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
         /// Get account information
         /// </summary>
         /// <returns>Account info; whether marketing automation is enabled, errors if exist</returns>
-        public (string Info, bool MarketingAutomationEnabled, string Errors) GetAccountInfo()
+        public (string Info, bool MarketingAutomationEnabled, /*bool TransactionSMSAllowed,*/  string Errors) GetAccountInfo()
         {
             try
             {
@@ -629,7 +645,7 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
                 var client = CreateApiClient(config => new ContactsApi(config));
 
                 //get available lists
-                var lists = client.GetLists();
+                var lists = client.GetLists(SendInBlueDefaults.DefaultSynchronizationListsLimit);
 
                 //prepare id-name pairs
                 var template = new { lists = new[] { new { id = string.Empty, name = string.Empty } } };
@@ -697,8 +713,8 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
                 var client = CreateApiClient(config => new AttributesApi(config));
 
                 var attributes = client.GetAttributes();
-                var attributeNames = attributes.Attributes.Select(attribute => attribute.Name).ToList();
-
+                var attributeNames = attributes.Attributes.Select(s => s.Name).ToList();
+                
                 //prepare attributes to create
                 var initialAttributes = new List<(CategoryEnum category, string Name, string Value, CreateAttribute.TypeEnum? Type)>
                 {
@@ -706,8 +722,7 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
                     (CategoryEnum.Normal, SendInBlueDefaults.PhoneServiceAttribute, null, CreateAttribute.TypeEnum.Text),
                     (CategoryEnum.Normal, SendInBlueDefaults.CountryServiceAttribute, null, CreateAttribute.TypeEnum.Text),
                     (CategoryEnum.Normal, SendInBlueDefaults.StoreIdServiceAttribute, null, CreateAttribute.TypeEnum.Text),
-                    (CategoryEnum.Transactional, SendInBlueDefaults.IdServiceAttribute, null, CreateAttribute.TypeEnum.Id),
-                    (CategoryEnum.Transactional, SendInBlueDefaults.OrderIdServiceAttribute, null, CreateAttribute.TypeEnum.Text),
+                    (CategoryEnum.Transactional, SendInBlueDefaults.OrderIdServiceAttribute, null, CreateAttribute.TypeEnum.Id),
                     (CategoryEnum.Transactional, SendInBlueDefaults.OrderDateServiceAttribute, null, CreateAttribute.TypeEnum.Text),
                     (CategoryEnum.Transactional, SendInBlueDefaults.OrderTotalServiceAttribute, null, CreateAttribute.TypeEnum.Text),
                     (CategoryEnum.Calculated, SendInBlueDefaults.OrderTotalSumServiceAttribute, $"SUM[{SendInBlueDefaults.OrderTotalServiceAttribute}]", null),
@@ -885,8 +900,10 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
                     throw new NopException("Email account not configured");
 
                 //the original body and subject of the email template are the same as that of the message template
-                var body = Regex.Replace(message.Body, "(%[^\\%]*.%)", x => $"{{{{ params.{x.ToString().Replace("%", "").Replace(".", "_").Replace("(s)", "-s-").ToUpperInvariant()} }}}}");
-                var subject = Regex.Replace(message.Subject, "(%[^\\%]*.%)", x => $"{{{{ params.{x.ToString().Replace("%", "").Replace(".", "_").Replace("(s)", "-s-").ToUpperInvariant()} }}}}");
+                var body = message.Body.Replace("%if", "\"if\"").Replace("endif%", "\"endif\"");
+                body = Regex.Replace(body, "(%[^\\%]*.%)", x => $"{{{{ params.{x.ToString().Replace("%", "").Replace(".", "_").ToUpperInvariant()} }}}}");
+                var subject = message.Subject.Replace("%if", "\"if\"").Replace("endif%", "\"endif\"");
+                subject = Regex.Replace(subject, "(%[^\\%]*.%)", x => $"{{{{ params.{x.ToString().Replace("%", "").Replace(".", "_").ToUpperInvariant()} }}}}");
 
                 //create email template
                 var createSmtpTemplate = new CreateSmtpTemplate(sender: new CreateSmtpTemplateSender(emailAccount.DisplayName, emailAccount.Email),
@@ -922,8 +939,10 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
                 var template = client.GetSmtpTemplate(templateId);
 
                 //bring attributes to tokens format
-                var subject = Regex.Replace(template.Subject, "({{\\s*params\\..*?\\s*}})", x => $"%{x.ToString().Replace("{", "").Replace("}", "").Replace("params.", "").Replace("_", ".").Replace("-S-", "(s)").Trim()}%");
-                var body = Regex.Replace(template.HtmlContent, "({{\\s*params\\..*?\\s*}})", x => $"%{x.ToString().Replace("{", "").Replace("}", "").Replace("params.", "").Replace("_", ".").Replace("-S-", "(s)").Trim()}%");
+                var subject = Regex.Replace(template.Subject, "({{\\s*params\\..*?\\s*}})", x => $"%{x.ToString().Replace("{", "").Replace("}", "").Replace("params.", "").Replace("_", ".").Trim()}%");
+                subject = subject.Replace("\"if\"", "%if").Replace("\"endif\"", "endif%");
+                var body = Regex.Replace(template.HtmlContent, "({{\\s*params\\..*?\\s*}})", x => $"%{x.ToString().Replace("{", "").Replace("}", "").Replace("params.", "").Replace("_", ".").Trim()}%");
+                body = body.Replace("\"if\"", "%if").Replace("\"endif\"", "endif%");
 
                 //map template to queued email
                 return new QueuedEmail

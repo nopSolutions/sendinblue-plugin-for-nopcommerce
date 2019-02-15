@@ -4,6 +4,7 @@ using System.Linq;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Nop.Core;
+using Nop.Core.Caching;
 using Nop.Core.Domain.Messages;
 using Nop.Plugin.Misc.SendInBlue.Models;
 using Nop.Plugin.Misc.SendInBlue.Services;
@@ -39,6 +40,7 @@ namespace Nop.Plugin.Misc.SendInBlue.Controllers
         private readonly IStoreService _storeService;
         private readonly MessageTemplatesSettings _messageTemplatesSettings;
         private readonly SendInBlueManager _sendInBlueEmailManager;
+        private readonly IStaticCacheManager _cacheManager;
 
         #endregion
 
@@ -55,7 +57,8 @@ namespace Nop.Plugin.Misc.SendInBlue.Controllers
             IStoreMappingService storeMappingService,
             IStoreService storeService,
             MessageTemplatesSettings messageTemplatesSettings,
-            SendInBlueManager sendInBlueEmailManager)
+            SendInBlueManager sendInBlueEmailManager,
+            IStaticCacheManager cacheManager)
         {
             this._emailAccountService = emailAccountService;
             this._genericAttributeService = genericAttributeService;
@@ -69,6 +72,7 @@ namespace Nop.Plugin.Misc.SendInBlue.Controllers
             this._storeService = storeService;
             this._messageTemplatesSettings = messageTemplatesSettings;
             this._sendInBlueEmailManager = sendInBlueEmailManager;
+            this._cacheManager = cacheManager;
         }
 
         #endregion
@@ -195,7 +199,7 @@ namespace Nop.Plugin.Misc.SendInBlue.Controllers
             const string dataKey = "nop.selected-tab-name";
             if (persistForTheNextRequest)
             {
-                TempData[dataKey] = tabName;
+                ViewData[dataKey] = tabName;
             }
             else
             {
@@ -287,7 +291,7 @@ namespace Nop.Plugin.Misc.SendInBlue.Controllers
             }
             if (!messages.Any(message => message.Type == NotifyType.Error))
             {
-                TempData["synchronizationStart"] = true;
+                ViewData["synchronizationStart"] = true;
                 SuccessNotification(_localizationService.GetResource("Plugins.Misc.SendInBlue.ImportProcess"));
             }
 
@@ -301,7 +305,9 @@ namespace Nop.Plugin.Misc.SendInBlue.Controllers
         [Area(AreaNames.Admin)]
         public string GetSynchronizationInfo()
         {
-            return TempData["synchronizationEnd"]?.ToString() ?? string.Empty;
+            var res = _cacheManager.Get(SendInBlueDefaults.SyncKeyCache, () => string.Empty);
+            _cacheManager.Remove(SendInBlueDefaults.SyncKeyCache);
+            return res;
         }
 
         [AuthorizeAdmin]
@@ -334,10 +340,10 @@ namespace Nop.Plugin.Misc.SendInBlue.Controllers
                         ErrorNotification(emailAccountErrors);
 
                     //synchronize message templates tokens with transactional attributes
-                    var tokens = _messageTokenProvider.GetListOfAllowedTokens().ToList();
+                    /*var tokens = _messageTokenProvider.GetListOfAllowedTokens().ToList();
                     var attributesErrors = _sendInBlueEmailManager.PrepareTransactionalAttributes(tokens);
                     if (!string.IsNullOrEmpty(attributesErrors))
-                        ErrorNotification(attributesErrors);
+                        ErrorNotification(attributesErrors);*/
                 }
                 else
                 {
@@ -670,12 +676,12 @@ namespace Nop.Plugin.Misc.SendInBlue.Controllers
                 _logger.Information(logInfo);
 
                 //display info on configuration page in case of the manually synchronization
-                TempData["synchronizationEnd"] = logInfo;
+                _cacheManager.Set(SendInBlueDefaults.SyncKeyCache, logInfo, 60);
             }
             catch (Exception ex)
             {
                 _logger.Error(ex.Message, ex);
-                TempData["synchronizationEnd"] = ex.Message;
+                _cacheManager.Set(SendInBlueDefaults.SyncKeyCache, ex.Message, 60);                
             }
 
             return Ok();

@@ -74,13 +74,13 @@ namespace Nop.Plugin.Misc.SendInBlue.Models
         [NopResourceDisplayName("Plugins.Misc.SendInBlue.AccountInfo")]
         public string AccountInfo { get; set; }
 
-        [NopResourceDisplayName("Admin.ContentManagement.MessageTemplates.Fields.AllowedTokens")]
+        [NopResourceDisplayName("Plugins.Misc.SendInBlue.Fields.AllowedTokens")]
         public string AllowedTokens { get; set; }
 
         public List<SelectListItem> AvailableMessageTemplates { get; set; }
 
         public bool MarketingAutomationDisabled { get; set; }
-        
+
         #endregion
     }
 }

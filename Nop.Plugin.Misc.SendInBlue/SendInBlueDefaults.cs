@@ -53,6 +53,11 @@ namespace Nop.Plugin.Misc.SendInBlue
         public static int DefaultSynchronizationPeriod => 12;
 
         /// <summary>
+        /// Gets a default synchronization limit of Lists
+        /// </summary>
+        public static int DefaultSynchronizationListsLimit => 50;
+
+        /// <summary>
         /// Gets a header of the API authentication key
         /// </summary>
         public static string ApiKeyHeader => "api-key";
@@ -81,6 +86,11 @@ namespace Nop.Plugin.Misc.SendInBlue
         /// Gets a name of attribute to store a phone
         /// </summary>
         public static string PhoneServiceAttribute => "PHONE";
+
+        /// <summary>
+        /// Gets a name of attribute to store a SMS
+        /// </summary>
+        public static string SMSServiceAttribute => "SMS";
 
         /// <summary>
         /// Gets a name of attribute to store a country
@@ -183,11 +193,6 @@ namespace Nop.Plugin.Misc.SendInBlue
         public static string EmailCustomHeader => "X-Mailin-Tag";
 
         /// <summary>
-        /// Gets a name of the cart created event
-        /// </summary>
-        public static string CartCreatedEventName => "cart_created";
-
-        /// <summary>
         /// Gets a name of the cart updated event
         /// </summary>
         public static string CartUpdatedEventName => "cart_updated";
@@ -201,5 +206,10 @@ namespace Nop.Plugin.Misc.SendInBlue
         /// Gets a name of the order completed event
         /// </summary>
         public static string OrderCompletedEventName => "order_completed";
+
+        /// <summary>
+        /// Gets a key of cache synchronization
+        /// </summary>
+        public static string SyncKeyCache => "PLUGINS_MISC_SENDINBLUE_SYNCINFO";
     }
 }
