@@ -35,12 +35,12 @@ namespace Nop.Plugin.Misc.SendInBlue
             IStoreService storeService,
             IWebHelper webHelper)
         {
-            this._emailAccountService = emailAccountService;
-            this._localizationService = localizationService;
-            this._scheduleTaskService = scheduleTaskService;
-            this._settingService = settingService;
-            this._storeService = storeService;
-            this._webHelper = webHelper;
+            _emailAccountService = emailAccountService;
+            _localizationService = localizationService;
+            _scheduleTaskService = scheduleTaskService;
+            _settingService = settingService;
+            _storeService = storeService;
+            _webHelper = webHelper;
         }
 
         #endregion
@@ -94,7 +94,7 @@ namespace Nop.Plugin.Misc.SendInBlue
             _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Misc.SendInBlue.Fields.CampaignText", "Text");
             _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Misc.SendInBlue.Fields.CampaignText.Hint", "Specify SMS campaign content. The number of characters is limited to 160 for one message.");
             _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Misc.SendInBlue.Fields.List", "List");
-            _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Misc.SendInBlue.Fields.List.Hint", "Choose list of contacts to synchronize.");
+            _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Misc.SendInBlue.Fields.List.Hint", "Choose list of contacts to synchronize. The auto sync is every 43200 seconds by default. To configure automatic synchronization go to System - Schedule tasks.");
             _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Misc.SendInBlue.Fields.MaKey", "Tracker ID");
             _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Misc.SendInBlue.Fields.MaKey.Hint", "Input your Tracker ID.");
             _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Misc.SendInBlue.Fields.Sender", "Send emails from");

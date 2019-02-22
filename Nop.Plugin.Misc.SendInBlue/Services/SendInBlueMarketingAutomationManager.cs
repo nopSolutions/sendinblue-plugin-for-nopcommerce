@@ -67,22 +67,22 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
             IWorkContext workContext,
             SendInBlueSettings sendInBlueSettings)
         {
-            this._currencySettings = currencySettings;
-            this._actionContextAccessor = actionContextAccessor;
-            this._currencyService = currencyService;
-            this._genericAttributeService = genericAttributeService;
-            this._localizationService = localizationService;
-            this._logger = logger;
-            this._orderTotalCalculationService = orderTotalCalculationService;
-            this._pictureService = pictureService;
-            this._priceCalculationService = priceCalculationService;
-            this._productAttributeParser = productAttributeParser;
-            this._storeContext = storeContext;
-            this._urlHelperFactory = urlHelperFactory;
-            this._urlRecordService = urlRecordService;
-            this._webHelper = webHelper;
-            this._workContext = workContext;
-            this._sendInBlueSettings = sendInBlueSettings;
+            _currencySettings = currencySettings;
+            _actionContextAccessor = actionContextAccessor;
+            _currencyService = currencyService;
+            _genericAttributeService = genericAttributeService;
+            _localizationService = localizationService;
+            _logger = logger;
+            _orderTotalCalculationService = orderTotalCalculationService;
+            _pictureService = pictureService;
+            _priceCalculationService = priceCalculationService;
+            _productAttributeParser = productAttributeParser;
+            _storeContext = storeContext;
+            _urlHelperFactory = urlHelperFactory;
+            _urlRecordService = urlRecordService;
+            _webHelper = webHelper;
+            _workContext = workContext;
+            _sendInBlueSettings = sendInBlueSettings;
         }
 
         #endregion
@@ -275,6 +275,9 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
                     };
                 }).ToArray();
 
+                var shippingAddress = order.ShippingAddress;
+                var billingAddress = order.BillingAddress;
+
                 //prepare cart data
                 var cartData = new
                 {
@@ -287,7 +290,30 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
                     url = urlHelper.RouteUrl("OrderDetails", new { orderId = order.Id }, _webHelper.CurrentRequestProtocol),
                     currency = order.CustomerCurrencyCode,
                     //gift_wrapping = string.Empty, //currently we can't get this value
-                    products = productsData
+                    products = productsData,
+                    
+                    //address
+                    shipping_firstname = shippingAddress.FirstName,
+                    shipping_lastname = shippingAddress.LastName,
+                    shipping_company = shippingAddress.Company,
+                    shipping_phone = shippingAddress.PhoneNumber,
+                    shipping_address1 = shippingAddress.Address1,
+                    shipping_address2 = shippingAddress.Address2,
+                    shipping_city = shippingAddress.City,
+                    shipping_country = shippingAddress.Country?.Name,
+                    shipping_state = shippingAddress.StateProvince?.Name,
+                    shipping_postalcode = shippingAddress.ZipPostalCode,
+
+                    billing_firstname = billingAddress.FirstName,
+                    billing_lastname = billingAddress.LastName,
+                    billing_company = billingAddress.Company,
+                    billing_phone = billingAddress.PhoneNumber,
+                    billing_address1 = billingAddress.Address1,
+                    billing_address2 = billingAddress.Address2,
+                    billing_city = billingAddress.City,
+                    billing_country = billingAddress.Country?.Name,
+                    billing_state = billingAddress.StateProvince?.Name,
+                    billing_postalcode = billingAddress.ZipPostalCode
                 };
 
                 //get shopping cart GUID

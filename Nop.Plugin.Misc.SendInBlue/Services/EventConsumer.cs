@@ -29,8 +29,8 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
         public EventConsumer(SendInBlueManager sendInBlueEmailManager,
             SendInBlueMarketingAutomationManager sendInBlueMarketingAutomationManager)
         {
-            this._sendInBlueEmailManager = sendInBlueEmailManager;
-            this._sendInBlueMarketingAutomationManager = sendInBlueMarketingAutomationManager;
+            _sendInBlueEmailManager = sendInBlueEmailManager;
+            _sendInBlueMarketingAutomationManager = sendInBlueMarketingAutomationManager;
         }
 
         #endregion

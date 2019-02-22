@@ -20,8 +20,8 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
         public SynchronizationTask(IPluginFinder pluginFinder,
             SendInBlueManager sendInBlueEmailManager)
         {
-            this._pluginFinder = pluginFinder;
-            this._sendInBlueEmailManager = sendInBlueEmailManager;
+            _pluginFinder = pluginFinder;
+            _sendInBlueEmailManager = sendInBlueEmailManager;
         }
 
         #endregion

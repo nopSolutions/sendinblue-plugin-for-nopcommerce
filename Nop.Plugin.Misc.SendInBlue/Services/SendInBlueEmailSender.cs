@@ -26,8 +26,8 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
             IStoreContext storeContext,
             SendInBlueSettings sendInBlueSettings) : base(downloadService, fileProvider)
         {
-            this._storeContext = storeContext;
-            this._sendInBlueSettings = sendInBlueSettings;
+            _storeContext = storeContext;
+            _sendInBlueSettings = sendInBlueSettings;
         }
 
         #endregion

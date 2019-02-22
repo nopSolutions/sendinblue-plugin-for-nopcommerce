@@ -80,18 +80,18 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
                 storeService,
                 tokenizer)
         {
-            this._emailAccountService = emailAccountService;
-            this._eventPublisher = eventPublisher;
-            this._genericAttributeService = genericAttributeService;
-            this._messageTemplateService = messageTemplateService;
-            this._messageTokenProvider = messageTokenProvider;
-            this._queuedEmailService = queuedEmailService;
-            this._settingService = settingService;
-            this._storeContext = storeContext;
-            this._storeService = storeService;
-            this._tokenizer = tokenizer;
-            this._sendInBlueEmailManager = sendInBlueEmailManager;
-            this._currentCustomerService = customerService;
+            _emailAccountService = emailAccountService;
+            _eventPublisher = eventPublisher;
+            _genericAttributeService = genericAttributeService;
+            _messageTemplateService = messageTemplateService;
+            _messageTokenProvider = messageTokenProvider;
+            _queuedEmailService = queuedEmailService;
+            _settingService = settingService;
+            _storeContext = storeContext;
+            _storeService = storeService;
+            _tokenizer = tokenizer;
+            _sendInBlueEmailManager = sendInBlueEmailManager;
+            _currentCustomerService = customerService;
         }
 
         #endregion

@@ -41,6 +41,7 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
         private readonly ILogger _logger;
         private readonly INewsLetterSubscriptionService _newsLetterSubscriptionService;
         private readonly ISettingService _settingService;
+        private readonly IStateProvinceService _stateProvinceService;
         private readonly IStoreService _storeService;
         private readonly IUrlHelperFactory _urlHelperFactory;
         private readonly IWebHelper _webHelper;
@@ -58,23 +59,25 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
             ILogger logger,
             INewsLetterSubscriptionService newsLetterSubscriptionService,
             ISettingService settingService,
+            IStateProvinceService stateProvinceService,
             IStoreService storeService,
             IUrlHelperFactory urlHelperFactory,
             IWebHelper webHelper,
             IWorkContext workContext)
         {
-            this._actionContextAccessor = actionContextAccessor;
-            this._countryService = countryService;
-            this._customerService = customerService;
-            this._emailAccountService = emailAccountService;
-            this._genericAttributeService = genericAttributeService;
-            this._logger = logger;
-            this._newsLetterSubscriptionService = newsLetterSubscriptionService;
-            this._settingService = settingService;
-            this._storeService = storeService;
-            this._urlHelperFactory = urlHelperFactory;
-            this._webHelper = webHelper;
-            this._workContext = workContext;
+            _actionContextAccessor = actionContextAccessor;
+            _countryService = countryService;
+            _customerService = customerService;
+            _emailAccountService = emailAccountService;
+            _genericAttributeService = genericAttributeService;
+            _logger = logger;
+            _newsLetterSubscriptionService = newsLetterSubscriptionService;
+            _settingService = settingService;
+            _stateProvinceService = stateProvinceService;
+            _storeService = storeService;
+            _urlHelperFactory = urlHelperFactory;
+            _webHelper = webHelper;
+            _workContext = workContext;
         }
 
         #endregion
@@ -140,16 +143,62 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
                     var urlHelper = _urlHelperFactory.GetUrlHelper(_actionContextAccessor.ActionContext);
                     var notificationUrl = urlHelper.RouteUrl(SendInBlueDefaults.ImportContactsRoute, null, _webHelper.CurrentRequestProtocol);
 
+                    var name = string.Empty;
+
+                    switch (GetAccountLanguage())
+                    {
+                        case SendInBlueAccountLanguage.French:
+                            name = 
+                                $"{SendInBlueDefaults.FirstNameFrenchServiceAttribute};" +
+                                $"{SendInBlueDefaults.LastNameFrenchServiceAttribute};";
+                            break;
+                        case SendInBlueAccountLanguage.German:
+                            name =
+                                $"{SendInBlueDefaults.FirstNameGermanServiceAttribute};" +
+                                $"{SendInBlueDefaults.LastNameGermanServiceAttribute};";
+                            break;
+                        case SendInBlueAccountLanguage.Italian:
+                            name =
+                                $"{SendInBlueDefaults.FirstNameItalianServiceAttribute};" +
+                                $"{SendInBlueDefaults.LastNameItalianServiceAttribute};";
+                            break;
+                        case SendInBlueAccountLanguage.Portuguese:
+                            name =
+                                $"{SendInBlueDefaults.FirstNamePortugueseServiceAttribute};" +
+                                $"{SendInBlueDefaults.LastNamePortugueseServiceAttribute};";
+                            break;
+                        case SendInBlueAccountLanguage.Spanish:
+                            name =
+                                $"{SendInBlueDefaults.FirstNameSpanishServiceAttribute};" +
+                                $"{SendInBlueDefaults.LastNameSpanishServiceAttribute};";
+                            break;
+
+                        case SendInBlueAccountLanguage.Default:
+                            name =
+                                $"{SendInBlueDefaults.FirstNameServiceAttribute};" +
+                                $"{SendInBlueDefaults.LastNameServiceAttribute};";
+                            break;
+                    }
+
                     //prepare CSV 
                     var title =
                         $"{SendInBlueDefaults.EmailServiceAttribute};" +
-                        $"{SendInBlueDefaults.FirstNameServiceAttribute};" +
-                        $"{SendInBlueDefaults.LastNameServiceAttribute};" +
+                        name +
                         $"{SendInBlueDefaults.UsernameServiceAttribute};" +
                         $"{SendInBlueDefaults.SMSServiceAttribute};" +
                         $"{SendInBlueDefaults.PhoneServiceAttribute};" +
                         $"{SendInBlueDefaults.CountryServiceAttribute};" +
-                        $"{SendInBlueDefaults.StoreIdServiceAttribute}";
+                        $"{SendInBlueDefaults.StoreIdServiceAttribute};" +
+                        $"{SendInBlueDefaults.GenderServiceAttribute};" +
+                        $"{SendInBlueDefaults.DateOfBirthServiceAttribute};" +
+                        $"{SendInBlueDefaults.CompanyServiceAttribute};" +
+                        $"{SendInBlueDefaults.Address1ServiceAttribute};" +
+                        $"{SendInBlueDefaults.Address2ServiceAttribute};" +
+                        $"{SendInBlueDefaults.ZipCodeServiceAttribute};" +
+                        $"{SendInBlueDefaults.CityServiceAttribute};" +
+                        $"{SendInBlueDefaults.CountyServiceAttribute};" +
+                        $"{SendInBlueDefaults.StateServiceAttribute};" +
+                        $"{SendInBlueDefaults.FaxServiceAttribute}";
                     var csv = subscriptions.Aggregate(title, (all, subscription) =>
                     {
                         var firstName = string.Empty;
@@ -157,6 +206,16 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
                         var phone = string.Empty;
                         var countryName = string.Empty;
                         var SMS = string.Empty;
+                        var gender = string.Empty;
+                        var dateOfBirth = string.Empty;
+                        var company = string.Empty;
+                        var address1 = string.Empty;
+                        var address2 = string.Empty;
+                        var zipCode = string.Empty;
+                        var city = string.Empty;
+                        var county = string.Empty;
+                        var state = string.Empty;
+                        var fax = string.Empty;
 
                         var customer = _customerService.GetCustomerByEmail(subscription.Email);
                         if (customer != null)
@@ -170,6 +229,17 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
                             var countryISOCode = country?.NumericIsoCode ?? 0;
                             if (countryISOCode > 0)
                                 SMS = phone.Replace("+" + ISO3166.FromISOCode(countryISOCode).DialCodes.FirstOrDefault().Replace(" ", ""), "");
+
+                            gender = _genericAttributeService.GetAttribute<string>(customer, NopCustomerDefaults.GenderAttribute);
+                            dateOfBirth = _genericAttributeService.GetAttribute<string>(customer, NopCustomerDefaults.DateOfBirthAttribute);
+                            company = _genericAttributeService.GetAttribute<string>(customer, NopCustomerDefaults.CompanyAttribute);
+                            address1 = _genericAttributeService.GetAttribute<string>(customer, NopCustomerDefaults.StreetAddressAttribute);
+                            address2 = _genericAttributeService.GetAttribute<string>(customer, NopCustomerDefaults.StreetAddress2Attribute);
+                            zipCode = _genericAttributeService.GetAttribute<string>(customer, NopCustomerDefaults.ZipPostalCodeAttribute);
+                            city = _genericAttributeService.GetAttribute<string>(customer, NopCustomerDefaults.CityAttribute);
+                            county = _genericAttributeService.GetAttribute<string>(customer, NopCustomerDefaults.CountyAttribute);
+                            state = _stateProvinceService.GetStateProvinceById(_genericAttributeService.GetAttribute<int>(customer, NopCustomerDefaults.StateProvinceIdAttribute))?.Name;
+                            fax = _genericAttributeService.GetAttribute<string>(customer, NopCustomerDefaults.FaxAttribute);
                         }
                         return $"{all}\n" +
                             $"{subscription.Email};" +
@@ -179,7 +249,17 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
                             $"{SMS};" +
                             $"{phone};" +
                             $"{countryName};" +
-                            $"{subscription.StoreId}";
+                            $"{subscription.StoreId};" +
+                            $"{gender};" +
+                            $"{dateOfBirth};" +
+                            $"{company};" +
+                            $"{address1};" +
+                            $"{address2};" +
+                            $"{zipCode};" +
+                            $"{city};" +
+                            $"{county};" +
+                            $"{state};" +
+                            $"{fax};";
                     });
                     
                     //prepare data to import
@@ -378,6 +458,17 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
                     var phone = string.Empty;
                     var SMS = string.Empty;
                     var countryName = string.Empty;
+                    var gender = string.Empty;
+                    var dateOfBirth = string.Empty;
+                    var company = string.Empty;
+                    var address1 = string.Empty;
+                    var address2 = string.Empty;
+                    var zipCode = string.Empty;
+                    var city = string.Empty;
+                    var county = string.Empty;
+                    var state = string.Empty;
+                    var fax = string.Empty;
+
                     var customer = _customerService.GetCustomerByEmail(subscription.Email);
                     if (customer != null)
                     {
@@ -389,20 +480,68 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
                         countryName = country?.Name;
 
                         var countryISOCode = country?.NumericIsoCode ?? 0;
-                        if (countryISOCode > 0)
+                        if (countryISOCode > 0 && !string.IsNullOrEmpty(phone))
                             SMS = phone.Replace("+" + ISO3166.FromISOCode(countryISOCode).DialCodes.FirstOrDefault().Replace(" ", ""), "");
 
+                        gender = _genericAttributeService.GetAttribute<string>(customer, NopCustomerDefaults.GenderAttribute);
+                        dateOfBirth = _genericAttributeService.GetAttribute<string>(customer, NopCustomerDefaults.DateOfBirthAttribute);
+                        company = _genericAttributeService.GetAttribute<string>(customer, NopCustomerDefaults.CompanyAttribute);
+                        address1 = _genericAttributeService.GetAttribute<string>(customer, NopCustomerDefaults.StreetAddressAttribute);
+                        address2 = _genericAttributeService.GetAttribute<string>(customer, NopCustomerDefaults.StreetAddress2Attribute);
+                        zipCode = _genericAttributeService.GetAttribute<string>(customer, NopCustomerDefaults.ZipPostalCodeAttribute);
+                        city = _genericAttributeService.GetAttribute<string>(customer, NopCustomerDefaults.CityAttribute);
+                        county = _genericAttributeService.GetAttribute<string>(customer, NopCustomerDefaults.CountyAttribute);
+                        state = _stateProvinceService.GetStateProvinceById(_genericAttributeService.GetAttribute<int>(customer, NopCustomerDefaults.StateProvinceIdAttribute))?.Name;
+                        fax = _genericAttributeService.GetAttribute<string>(customer, NopCustomerDefaults.FaxAttribute);
                     }
+
                     var attributes = new Dictionary<string, string>
                     {
-                        [SendInBlueDefaults.FirstNameServiceAttribute] = firstName,
-                        [SendInBlueDefaults.LastNameServiceAttribute] = lastName,
                         [SendInBlueDefaults.UsernameServiceAttribute] = customer?.Username,
                         [SendInBlueDefaults.SMSServiceAttribute] = SMS,
                         [SendInBlueDefaults.PhoneServiceAttribute] = phone,
                         [SendInBlueDefaults.CountryServiceAttribute] = countryName,
-                        [SendInBlueDefaults.StoreIdServiceAttribute] = subscription.StoreId.ToString()
+                        [SendInBlueDefaults.StoreIdServiceAttribute] = subscription.StoreId.ToString(),
+                        [SendInBlueDefaults.GenderServiceAttribute] = gender,
+                        [SendInBlueDefaults.DateOfBirthServiceAttribute] = dateOfBirth,
+                        [SendInBlueDefaults.CompanyServiceAttribute] = company,
+                        [SendInBlueDefaults.Address1ServiceAttribute] = address1,
+                        [SendInBlueDefaults.Address2ServiceAttribute] = address2,
+                        [SendInBlueDefaults.ZipCodeServiceAttribute] = zipCode,
+                        [SendInBlueDefaults.CityServiceAttribute] = city,
+                        [SendInBlueDefaults.CountyServiceAttribute] = county,
+                        [SendInBlueDefaults.StateServiceAttribute] = state,
+                        [SendInBlueDefaults.FaxServiceAttribute] = fax
                     };
+
+                    switch (GetAccountLanguage())
+                    {
+                        case SendInBlueAccountLanguage.French:
+                            attributes.Add(SendInBlueDefaults.FirstNameFrenchServiceAttribute, firstName);
+                            attributes.Add(SendInBlueDefaults.LastNameFrenchServiceAttribute, lastName);                            
+                            break;
+                        case SendInBlueAccountLanguage.German:
+                            attributes.Add(SendInBlueDefaults.FirstNameGermanServiceAttribute, firstName);
+                            attributes.Add(SendInBlueDefaults.LastNameGermanServiceAttribute, lastName);
+                            break;
+                        case SendInBlueAccountLanguage.Italian:
+                            attributes.Add(SendInBlueDefaults.FirstNameItalianServiceAttribute, firstName);
+                            attributes.Add(SendInBlueDefaults.LastNameItalianServiceAttribute, lastName);
+                            break;
+                        case SendInBlueAccountLanguage.Portuguese:
+                            attributes.Add(SendInBlueDefaults.FirstNamePortugueseServiceAttribute, firstName);
+                            attributes.Add(SendInBlueDefaults.LastNamePortugueseServiceAttribute, lastName);
+                            break;
+                        case SendInBlueAccountLanguage.Spanish:
+                            attributes.Add(SendInBlueDefaults.FirstNameSpanishServiceAttribute, firstName);
+                            attributes.Add(SendInBlueDefaults.LastNameSpanishServiceAttribute, lastName);
+                            break;
+                        case SendInBlueAccountLanguage.Default:
+                            attributes.Add(SendInBlueDefaults.FirstNameServiceAttribute, firstName);
+                            attributes.Add(SendInBlueDefaults.LastNameServiceAttribute, lastName);
+                            break;
+                    }
+
                     var createContact = new CreateContact
                     {
                         Email = subscription.Email,
@@ -702,7 +841,95 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
         }
 
         /// <summary>
-        /// Chekc and create missing attributes in account
+        /// Get account language
+        /// </summary>
+        /// <returns>SendInBlueAccountLanguage</returns>
+        public SendInBlueAccountLanguage GetAccountLanguage()
+        {
+            try
+            {
+                //create API client
+                var client = CreateApiClient(config => new AttributesApi(config));
+
+                var attributes = client.GetAttributes();
+                var allAttribytes = attributes.Attributes.Select(s => s.Name).ToList();
+
+                var defaultNameAttributes = new List<string>
+                {
+                    SendInBlueDefaults.FirstNameServiceAttribute,
+                    SendInBlueDefaults.LastNameServiceAttribute
+                };
+                if (defaultNameAttributes.All(attr => allAttribytes.Contains(attr)))
+                    return SendInBlueAccountLanguage.Default;
+
+                var frenchNameAttributes = new List<string>
+                {
+                    SendInBlueDefaults.FirstNameFrenchServiceAttribute,
+                    SendInBlueDefaults.LastNameFrenchServiceAttribute
+                };
+                if (frenchNameAttributes.All(attr => allAttribytes.Contains(attr)))
+                    return SendInBlueAccountLanguage.French;
+
+                var italianNameAttributes = new List<string>
+                {
+                    SendInBlueDefaults.FirstNameItalianServiceAttribute,
+                    SendInBlueDefaults.LastNameItalianServiceAttribute
+                };
+                if (italianNameAttributes.All(attr => allAttribytes.Contains(attr)))
+                    return SendInBlueAccountLanguage.Italian;
+
+                var spanishNameAttributes = new List<string>
+                {
+                    SendInBlueDefaults.FirstNameSpanishServiceAttribute,
+                    SendInBlueDefaults.LastNameSpanishServiceAttribute
+                };
+                if (spanishNameAttributes.All(attr => allAttribytes.Contains(attr)))
+                    return SendInBlueAccountLanguage.Spanish;
+
+                var germanNameAttributes = new List<string>
+                {
+                    SendInBlueDefaults.FirstNameGermanServiceAttribute,
+                    SendInBlueDefaults.LastNameGermanServiceAttribute
+                };
+                if (germanNameAttributes.All(attr => allAttribytes.Contains(attr)))
+                    return SendInBlueAccountLanguage.German;
+
+                var portugueseNameAttributes = new List<string>
+                {
+                    SendInBlueDefaults.FirstNamePortugueseServiceAttribute,
+                    SendInBlueDefaults.LastNamePortugueseServiceAttribute
+                };
+                if (portugueseNameAttributes.All(attr => allAttribytes.Contains(attr)))
+                    return SendInBlueAccountLanguage.Portuguese;
+                
+                //Create default customer names attribytes
+                var initialAttributes = new List<(CategoryEnum category, string Name, string Value, CreateAttribute.TypeEnum? Type)>
+                {
+                    (CategoryEnum.Normal, SendInBlueDefaults.FirstNameServiceAttribute, null, CreateAttribute.TypeEnum.Text),
+                    (CategoryEnum.Normal, SendInBlueDefaults.LastNameServiceAttribute, null, CreateAttribute.TypeEnum.Text)
+                };
+                //create attributes that are not already on account
+                var newAttributes = new List<(CategoryEnum category, string Name, string Value, CreateAttribute.TypeEnum? Type)>();
+                foreach (var attribute in initialAttributes)
+                {
+                    if (!allAttribytes.Contains(attribute.Name))
+                        newAttributes.Add(attribute);
+                }
+
+                CreateAttibutes(newAttributes);
+
+                return SendInBlueAccountLanguage.Default;
+            }
+            catch (Exception exception)
+            {
+                //log full error
+                _logger.Error($"SendInBlue error: {exception.Message}.", exception, _workContext.CurrentCustomer);
+                return SendInBlueAccountLanguage.Default;
+            }
+        }
+
+        /// <summary>
+        /// Check and create missing attributes in account
         /// </summary>
         /// <returns>Errors if exist</returns>
         public string PrepareAttributes()
@@ -722,6 +949,16 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
                     (CategoryEnum.Normal, SendInBlueDefaults.PhoneServiceAttribute, null, CreateAttribute.TypeEnum.Text),
                     (CategoryEnum.Normal, SendInBlueDefaults.CountryServiceAttribute, null, CreateAttribute.TypeEnum.Text),
                     (CategoryEnum.Normal, SendInBlueDefaults.StoreIdServiceAttribute, null, CreateAttribute.TypeEnum.Text),
+                    (CategoryEnum.Normal, SendInBlueDefaults.GenderServiceAttribute, null, CreateAttribute.TypeEnum.Text),
+                    (CategoryEnum.Normal, SendInBlueDefaults.DateOfBirthServiceAttribute, null, CreateAttribute.TypeEnum.Text),
+                    (CategoryEnum.Normal, SendInBlueDefaults.CompanyServiceAttribute, null, CreateAttribute.TypeEnum.Text),
+                    (CategoryEnum.Normal, SendInBlueDefaults.Address1ServiceAttribute, null, CreateAttribute.TypeEnum.Text),
+                    (CategoryEnum.Normal, SendInBlueDefaults.Address2ServiceAttribute, null, CreateAttribute.TypeEnum.Text),
+                    (CategoryEnum.Normal, SendInBlueDefaults.ZipCodeServiceAttribute, null, CreateAttribute.TypeEnum.Text),
+                    (CategoryEnum.Normal, SendInBlueDefaults.CityServiceAttribute, null, CreateAttribute.TypeEnum.Text),
+                    (CategoryEnum.Normal, SendInBlueDefaults.CountyServiceAttribute, null, CreateAttribute.TypeEnum.Text),
+                    (CategoryEnum.Normal, SendInBlueDefaults.StateServiceAttribute, null, CreateAttribute.TypeEnum.Text),
+                    (CategoryEnum.Normal, SendInBlueDefaults.FaxServiceAttribute, null, CreateAttribute.TypeEnum.Text),
                     (CategoryEnum.Transactional, SendInBlueDefaults.OrderIdServiceAttribute, null, CreateAttribute.TypeEnum.Id),
                     (CategoryEnum.Transactional, SendInBlueDefaults.OrderDateServiceAttribute, null, CreateAttribute.TypeEnum.Text),
                     (CategoryEnum.Transactional, SendInBlueDefaults.OrderTotalServiceAttribute, null, CreateAttribute.TypeEnum.Text),

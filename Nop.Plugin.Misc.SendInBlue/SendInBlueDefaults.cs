@@ -70,12 +70,62 @@ namespace Nop.Plugin.Misc.SendInBlue
         /// <summary>
         /// Gets a name of attribute to store a first name
         /// </summary>
-        public static string FirstNameServiceAttribute => "NAME";
+        public static string FirstNameServiceAttribute => "FIRSTNAME";
 
         /// <summary>
         /// Gets a name of attribute to store a last name
         /// </summary>
-        public static string LastNameServiceAttribute => "SURNAME";
+        public static string LastNameServiceAttribute => "LASTNAME";
+
+        /// <summary>
+        /// Gets a name of attribute to store a first name for French
+        /// </summary>
+        public static string FirstNameFrenchServiceAttribute => "PRENOM";
+
+        /// <summary>
+        /// Gets a name of attribute to store a first name for Italian
+        /// </summary>
+        public static string FirstNameItalianServiceAttribute => "NOME";
+
+        /// <summary>
+        /// Gets a name of attribute to store a first name for Spanish
+        /// </summary>
+        public static string FirstNameSpanishServiceAttribute => "NOMBRE";
+
+        /// <summary>
+        /// Gets a name of attribute to store a first name for German
+        /// </summary>
+        public static string FirstNameGermanServiceAttribute => "VORNAME";
+
+        /// <summary>
+        /// Gets a name of attribute to store a first name for Portuguese
+        /// </summary>
+        public static string FirstNamePortugueseServiceAttribute => "NOME";
+
+        /// <summary>
+        /// Gets a name of attribute to store a last name for French
+        /// </summary>
+        public static string LastNameFrenchServiceAttribute => "NOM";
+
+        /// <summary>
+        /// Gets a name of attribute to store a last name for Italian
+        /// </summary>
+        public static string LastNameItalianServiceAttribute => "COGNOME";
+
+        /// <summary>
+        /// Gets a name of attribute to store a last name for Spanish
+        /// </summary>
+        public static string LastNameSpanishServiceAttribute => "APELLIDO";
+
+        /// <summary>
+        /// Gets a name of attribute to store a last name for German
+        /// </summary>
+        public static string LastNameGermanServiceAttribute => "NAME";
+
+        /// <summary>
+        /// Gets a name of attribute to store a last name for Portuguese
+        /// </summary>
+        public static string LastNamePortugueseServiceAttribute => "SOBRENOME";
 
         /// <summary>
         /// Gets a name of attribute to store a username
@@ -96,6 +146,56 @@ namespace Nop.Plugin.Misc.SendInBlue
         /// Gets a name of attribute to store a country
         /// </summary>
         public static string CountryServiceAttribute => "COUNTRY";
+
+        /// <summary>
+        /// Gets a name of attribute to store a gender
+        /// </summary>
+        public static string GenderServiceAttribute => "GENDER";
+        
+        /// <summary>
+        /// Gets a name of attribute to store a date of birth
+        /// </summary>
+        public static string DateOfBirthServiceAttribute => "DATE_OF_BIRTH";
+        
+        /// <summary>
+        /// Gets a name of attribute to store a company
+        /// </summary>
+        public static string CompanyServiceAttribute => "COMPANY";
+        
+        /// <summary>
+        /// Gets a name of attribute to store a address 1
+        /// </summary>
+        public static string Address1ServiceAttribute => "ADDRESS_1";
+
+        /// <summary>
+        /// Gets a name of attribute to store a address 2
+        /// </summary>
+        public static string Address2ServiceAttribute => "ADDRESS_2";
+
+        /// <summary>
+        /// Gets a name of attribute to store a zip code
+        /// </summary>
+        public static string ZipCodeServiceAttribute => "ZIP_CODE";
+
+        /// <summary>
+        /// Gets a name of attribute to store a city
+        /// </summary>
+        public static string CityServiceAttribute => "CITY";
+
+        /// <summary>
+        /// Gets a name of attribute to store a zip code
+        /// </summary>
+        public static string CountyServiceAttribute => "COUNTY";
+
+        /// <summary>
+        /// Gets a name of attribute to store a zip code
+        /// </summary>
+        public static string StateServiceAttribute => "STATE";
+
+        /// <summary>
+        /// Gets a name of attribute to store a zip code
+        /// </summary>
+        public static string FaxServiceAttribute => "FAX";
 
         /// <summary>
         /// Gets a name of attribute to store a store identifier
@@ -211,5 +311,10 @@ namespace Nop.Plugin.Misc.SendInBlue
         /// Gets a key of cache synchronization
         /// </summary>
         public static string SyncKeyCache => "PLUGINS_MISC_SENDINBLUE_SYNCINFO";
+
+        /// <summary>
+        /// Gets a key of notification message
+        /// </summary>
+        public static string NotificationMessage => "Unfortunately, there’s been an error, feel free to reach our support team. ";
     }
 }
