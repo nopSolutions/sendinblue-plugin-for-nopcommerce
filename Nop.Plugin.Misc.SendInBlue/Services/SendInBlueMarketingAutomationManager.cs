@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Infrastructure;
@@ -154,7 +155,7 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
                     var cartTotal = _orderTotalCalculationService.GetShoppingCartTotal(cart, false, false);
 
                     //get products data by shopping cart items
-                    var productsData = cart.Where(item => item.Product != null).Select(item =>
+                    var itemsData = cart.Where(item => item.Product != null).Select(item =>
                     {
                         //try to get product attribute combination
                         var combination = _productAttributeParser.FindProductAttributeCombination(item.Product, item.AttributesXml);
@@ -169,29 +170,36 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
                         return new
                         {
                             id = item.Product.Id,
-                            name = _localizationService.GetLocalized(item.Product, x => x.Name),
+                            name = item.Product.Name,
                             variant_id = combination?.Id ?? item.Product.Id,
-                            variant_id_name = combination?.Sku ?? _localizationService.GetLocalized(item.Product, x => x.Name),
+                            variant_name = combination?.Sku ?? item.Product.Name,
+                            sku = combination?.Sku ?? item.Product.Sku,
+                            category = item.Product.ProductCategories.Aggregate(",", (all, category) => {
+                                var res = category.Category.Name;
+                                res = all == "," ? res : all + ", " + res;                                    
+                                return res;
+                                }),
                             url = urlHelper.RouteUrl("Product", new { SeName = seName }, _webHelper.CurrentRequestProtocol),
                             image = _pictureService.GetPictureUrl(picture),
                             quantity = item.Quantity,
-                            price = _priceCalculationService.GetSubTotal(item),
+                            price = _priceCalculationService.GetSubTotal(item)
                         };
                     }).ToArray();
 
                     //prepare cart data
                     var cartData = new
                     {
+                        affiliation = _storeContext.CurrentStore.Name,
                         subtotal = cartSubtotal,
-                        shipping = cartShipping,
-                        total_before_tax = cartSubtotal + cartShipping,
+                        shipping = cartShipping ?? decimal.Zero,
+                        total_before_tax = cartSubtotal + cartShipping ?? decimal.Zero,
                         tax = cartTax,
                         discount = cartDiscount,
-                        total = cartTotal,
+                        revenue = cartTotal ?? decimal.Zero,                        
                         url = urlHelper.RouteUrl("ShoppingCart", null, _webHelper.CurrentRequestProtocol),
                         currency = _currencyService.GetCurrencyById(_currencySettings.PrimaryStoreCurrencyId)?.CurrencyCode,
                         //gift_wrapping = string.Empty, //currently we can't get this value
-                        products = productsData
+                        items = itemsData
                     };
 
                     //if there is a single item in the cart, so the cart is just created
@@ -250,7 +258,7 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
                 var urlHelper = _urlHelperFactory.GetUrlHelper(_actionContextAccessor.ActionContext);
 
                 //get products data by order items
-                var productsData = order.OrderItems.Where(item => item.Product != null).Select(item =>
+                var itemsData = order.OrderItems.Where(item => item.Product != null).Select(item =>
                 {
                     //try to get product attribute combination
                     var combination = _productAttributeParser.FindProductAttributeCombination(item.Product, item.AttributesXml);
@@ -265,9 +273,15 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
                     return new
                     {
                         id = item.Product.Id,
-                        name = _localizationService.GetLocalized(item.Product, x => x.Name),
+                        name = item.Product.Name,
                         variant_id = combination?.Id ?? item.Product.Id,
-                        variant_id_name = combination?.Sku ?? _localizationService.GetLocalized(item.Product, x => x.Name),
+                        variant_name = combination?.Sku ?? item.Product.Name,
+                        sku = combination?.Sku ?? item.Product.Sku,
+                        category = item.Product.ProductCategories.Aggregate(",", (all, category) => {
+                            var res = category.Category.Name;
+                            res = all == "," ? res : all + ", " + res;
+                            return res;
+                        }),
                         url = urlHelper.RouteUrl("Product", new { SeName = seName }, _webHelper.CurrentRequestProtocol),
                         image = _pictureService.GetPictureUrl(picture),
                         quantity = item.Quantity,
@@ -278,42 +292,51 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
                 var shippingAddress = order.ShippingAddress;
                 var billingAddress = order.BillingAddress;
 
+                var shipping_addressData = new {
+                    firstname = shippingAddress.FirstName,
+                    lastname = shippingAddress.LastName,
+                    company = shippingAddress.Company,
+                    phone = shippingAddress.PhoneNumber,
+                    address1 = shippingAddress.Address1,
+                    address2 = shippingAddress.Address2,
+                    city = shippingAddress.City,
+                    country = shippingAddress.Country?.Name,
+                    state = shippingAddress.StateProvince?.Name,
+                    zipcode = shippingAddress.ZipPostalCode
+                };
+
+                var billing_addressData = new
+                {
+                    firstname = billingAddress.FirstName,
+                    lastname = billingAddress.LastName,
+                    company = billingAddress.Company,
+                    phone = billingAddress.PhoneNumber,
+                    address1 = billingAddress.Address1,
+                    address2 = billingAddress.Address2,
+                    city = billingAddress.City,
+                    country = billingAddress.Country?.Name,
+                    state = billingAddress.StateProvince?.Name,
+                    zipcode = billingAddress.ZipPostalCode
+                };
+
                 //prepare cart data
                 var cartData = new
                 {
+                    id = order.Id,
+                    affiliation = order.Customer.AffiliateId > 0 ? order.Customer.AffiliateId.ToString() : _storeContext.CurrentStore.Name,
+                    date = order.PaidDateUtc?.ToString("yyyy-MM-dd"),
                     subtotal = order.OrderSubtotalInclTax,
                     shipping = order.OrderShippingInclTax,
                     total_before_tax = order.OrderSubtotalInclTax + order.OrderShippingInclTax,
                     tax = order.OrderTax,
                     discount = order.OrderDiscount,
-                    total = order.OrderTotal,
+                    revenue = order.OrderTotal,
                     url = urlHelper.RouteUrl("OrderDetails", new { orderId = order.Id }, _webHelper.CurrentRequestProtocol),
                     currency = order.CustomerCurrencyCode,
                     //gift_wrapping = string.Empty, //currently we can't get this value
-                    products = productsData,
-                    
-                    //address
-                    shipping_firstname = shippingAddress.FirstName,
-                    shipping_lastname = shippingAddress.LastName,
-                    shipping_company = shippingAddress.Company,
-                    shipping_phone = shippingAddress.PhoneNumber,
-                    shipping_address1 = shippingAddress.Address1,
-                    shipping_address2 = shippingAddress.Address2,
-                    shipping_city = shippingAddress.City,
-                    shipping_country = shippingAddress.Country?.Name,
-                    shipping_state = shippingAddress.StateProvince?.Name,
-                    shipping_postalcode = shippingAddress.ZipPostalCode,
-
-                    billing_firstname = billingAddress.FirstName,
-                    billing_lastname = billingAddress.LastName,
-                    billing_company = billingAddress.Company,
-                    billing_phone = billingAddress.PhoneNumber,
-                    billing_address1 = billingAddress.Address1,
-                    billing_address2 = billingAddress.Address2,
-                    billing_city = billingAddress.City,
-                    billing_country = billingAddress.Country?.Name,
-                    billing_state = billingAddress.StateProvince?.Name,
-                    billing_postalcode = billingAddress.ZipPostalCode
+                    items = itemsData,
+                    shipping_address = shipping_addressData,
+                    billing_address = billing_addressData
                 };
 
                 //get shopping cart GUID

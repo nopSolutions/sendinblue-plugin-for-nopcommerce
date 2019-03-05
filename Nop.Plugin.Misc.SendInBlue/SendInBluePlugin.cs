@@ -1,24 +1,31 @@
 ﻿using Nop.Core;
 using Nop.Core.Domain.Tasks;
 using Nop.Core.Plugins;
+using Nop.Data.Extensions;
+using Nop.Services.Cms;
 using Nop.Services.Common;
 using Nop.Services.Configuration;
 using Nop.Services.Localization;
 using Nop.Services.Messages;
 using Nop.Services.Stores;
 using Nop.Services.Tasks;
+using Nop.Web.Framework.Infrastructure;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace Nop.Plugin.Misc.SendInBlue
 {
     /// <summary>
     /// Represents the SendInBlue plugin
     /// </summary>
-    public class SendInBluePlugin : BasePlugin, IMiscPlugin
+    public class SendInBluePlugin : BasePlugin, IMiscPlugin, IWidgetPlugin
     {
         #region Fields
 
         private readonly IEmailAccountService _emailAccountService;
+        private readonly IGenericAttributeService _genericAttributeService;
         private readonly ILocalizationService _localizationService;
+        private readonly IMessageTemplateService _messageTemplateService;
         private readonly IScheduleTaskService _scheduleTaskService;
         private readonly ISettingService _settingService;
         private readonly IStoreService _storeService;
@@ -29,14 +36,18 @@ namespace Nop.Plugin.Misc.SendInBlue
         #region Ctor
 
         public SendInBluePlugin(IEmailAccountService emailAccountService,
+            IGenericAttributeService genericAttributeService,
             ILocalizationService localizationService,
+            IMessageTemplateService messageTemplateService,
             IScheduleTaskService scheduleTaskService,
             ISettingService settingService,
             IStoreService storeService,
             IWebHelper webHelper)
         {
             _emailAccountService = emailAccountService;
+            _genericAttributeService = genericAttributeService;
             _localizationService = localizationService;
+            _messageTemplateService = messageTemplateService;
             _scheduleTaskService = scheduleTaskService;
             _settingService = settingService;
             _storeService = storeService;
@@ -46,6 +57,25 @@ namespace Nop.Plugin.Misc.SendInBlue
         #endregion
 
         #region Methods
+
+        /// <summary>
+        /// Gets widget zones where this widget should be rendered
+        /// </summary>
+        /// <returns>Widget zones</returns>
+        public IList<string> GetWidgetZones()
+        {
+            return new List<string> { PublicWidgetZones.HeadHtmlTag };
+        }
+
+        /// <summary>
+        /// Gets a name of a view component for displaying widget
+        /// </summary>
+        /// <param name="widgetZone">Name of the widget zone</param>
+        /// <returns>View component name</returns>
+        public string GetWidgetViewComponentName(string widgetZone)
+        {
+            return "WidgetsSendInBlue";
+        }
 
         /// <summary>
         /// Gets a configuration page URL
@@ -61,7 +91,17 @@ namespace Nop.Plugin.Misc.SendInBlue
         public override void Install()
         {
             //settings
-            _settingService.SaveSetting(new SendInBlueSettings());
+            _settingService.SaveSetting(new SendInBlueSettings()
+            {
+                TrackingScript = @"<!-- SendInBlue tracting code -->
+                <script>
+                    (function() {
+                        window.sib = { equeue: [], client_key: '{TRACKING_ID}' };
+                        window.sib.email_id = '{CUSTOMER_EMAIL}';
+                        window.sendinblue = {}; for (var j = ['track', 'identify', 'trackLink', 'page'], i = 0; i < j.length; i++) { (function(k) { window.sendinblue[k] = function() { var arg = Array.prototype.slice.call(arguments); (window.sib[k] || function() { var t = {}; t[k] = arg; window.sib.equeue.push(t);})(arg[0], arg[1], arg[2]);};})(j[i]);}var n = document.createElement('script'),i = document.getElementsByTagName('script')[0]; n.type = 'text/javascript', n.id = 'sendinblue-js', n.async = !0, n.src = 'https://sibautomation.com/sa.js?key=' + window.sib.client_key, i.parentNode.insertBefore(n, i), window.sendinblue.page();
+                    })();
+                </script>"
+            });
 
             //install synchronization task
             if (_scheduleTaskService.GetTaskByType(SendInBlueDefaults.SynchronizationTask) == null)
@@ -94,7 +134,7 @@ namespace Nop.Plugin.Misc.SendInBlue
             _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Misc.SendInBlue.Fields.CampaignText", "Text");
             _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Misc.SendInBlue.Fields.CampaignText.Hint", "Specify SMS campaign content. The number of characters is limited to 160 for one message.");
             _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Misc.SendInBlue.Fields.List", "List");
-            _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Misc.SendInBlue.Fields.List.Hint", "Choose list of contacts to synchronize. The auto sync is every 43200 seconds by default. To configure automatic synchronization go to System - Schedule tasks.");
+            _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Misc.SendInBlue.Fields.List.Hint", "Choose list of contacts to synchronize.");
             _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Misc.SendInBlue.Fields.MaKey", "Tracker ID");
             _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Misc.SendInBlue.Fields.MaKey.Hint", "Input your Tracker ID.");
             _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Misc.SendInBlue.Fields.Sender", "Send emails from");
@@ -105,6 +145,8 @@ namespace Nop.Plugin.Misc.SendInBlue
             _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Misc.SendInBlue.Fields.SmtpKey.Hint", "Specify SMTP key (password).");
             _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Misc.SendInBlue.Fields.StoreOwnerPhoneNumber", "Store owner phone number");
             _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Misc.SendInBlue.Fields.StoreOwnerPhoneNumber.Hint", "Input store owner phone number for SMS notifications.");
+            _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Misc.SendInBlue.Fields.TrackingScript", "Tracking script");
+            _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Misc.SendInBlue.Fields.TrackingScript.Hint", "Paste the tracking script generated by SendInBlue here. {TRACKING_ID} and {CUSTOMER_EMAIL} will be dynamically replaced.");
             _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Misc.SendInBlue.Fields.UseMarketingAutomation", "Use Marketing Automation");
             _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Misc.SendInBlue.Fields.UseMarketingAutomation.Hint", "Check for enable SendinBlue Automation.");
             _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Misc.SendInBlue.Fields.UseSmsNotifications", "Use SMS notifications");
@@ -149,6 +191,19 @@ namespace Nop.Plugin.Misc.SendInBlue
             //settings
             _settingService.DeleteSetting<SendInBlueSettings>();
 
+            //generic attributes
+            foreach (var store in _storeService.GetAllStores())
+            {
+                var messageTemplates = _messageTemplateService.GetAllMessageTemplates(store.Id);
+                foreach (var messageTemplate in messageTemplates)
+                {
+                    var genericAttributes = _genericAttributeService.GetAttributesForEntity(messageTemplate.Id, messageTemplate.GetUnproxiedEntityType().Name).ToList()
+                        .Where(w => w.Key.Equals(SendInBlueDefaults.TemplateIdAttribute) || w.Key.Equals(SendInBlueDefaults.SendInBlueTemplateAttribute))
+                        .ToArray();
+                    _genericAttributeService.DeleteAttributes(genericAttributes);
+                }
+            }
+
             //schedule task
             var task = _scheduleTaskService.GetTaskByType(SendInBlueDefaults.SynchronizationTask);
             if (task != null)
@@ -187,6 +242,8 @@ namespace Nop.Plugin.Misc.SendInBlue
             _localizationService.DeletePluginLocaleResource("Plugins.Misc.SendInBlue.Fields.SmtpKey.Hint");
             _localizationService.DeletePluginLocaleResource("Plugins.Misc.SendInBlue.Fields.StoreOwnerPhoneNumber");
             _localizationService.DeletePluginLocaleResource("Plugins.Misc.SendInBlue.Fields.StoreOwnerPhoneNumber.Hint");
+            _localizationService.DeletePluginLocaleResource("Plugins.Misc.SendInBlue.Fields.TrackingScript");
+            _localizationService.DeletePluginLocaleResource("Plugins.Misc.SendInBlue.Fields.TrackingScript.Hint");
             _localizationService.DeletePluginLocaleResource("Plugins.Misc.SendInBlue.Fields.UseMarketingAutomation");
             _localizationService.DeletePluginLocaleResource("Plugins.Misc.SendInBlue.Fields.UseMarketingAutomation.Hint");
             _localizationService.DeletePluginLocaleResource("Plugins.Misc.SendInBlue.Fields.UseSmsNotifications");

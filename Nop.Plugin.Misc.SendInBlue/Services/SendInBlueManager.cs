@@ -227,7 +227,7 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
                             var country = _countryService.GetCountryById(countryId);
                             countryName = country?.Name;
                             var countryISOCode = country?.NumericIsoCode ?? 0;
-                            if (countryISOCode > 0)
+                            if (countryISOCode > 0 && !string.IsNullOrEmpty(phone))
                                 SMS = phone.Replace("+" + ISO3166.FromISOCode(countryISOCode).DialCodes.FirstOrDefault().Replace(" ", ""), "");
 
                             gender = _genericAttributeService.GetAttribute<string>(customer, NopCustomerDefaults.GenderAttribute);
@@ -717,7 +717,7 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
         /// Get account information
         /// </summary>
         /// <returns>Account info; whether marketing automation is enabled, errors if exist</returns>
-        public (string Info, bool MarketingAutomationEnabled, /*bool TransactionSMSAllowed,*/  string Errors) GetAccountInfo()
+        public (string Info, bool MarketingAutomationEnabled, string MAkey, /*bool TransactionSMSAllowed,*/  string Errors) GetAccountInfo()
         {
             try
             {
@@ -736,13 +736,16 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
                     account.Plan.Where(plan => plan.Type != GetAccountPlan.TypeEnum.Sms).Sum(plan => plan.Credits),
                     account.Plan.Where(plan => plan.Type == GetAccountPlan.TypeEnum.Sms).Sum(plan => plan.Credits));
 
-                return (info, account.MarketingAutomation?.Enabled ?? false, null);
+                //get marketing automation tacker ID
+                var key = account.MarketingAutomation?.Key ?? string.Empty;
+
+                return (info, account.MarketingAutomation?.Enabled ?? false, key, null);
             }
             catch (Exception exception)
             {
                 //log full error
                 _logger.Error($"SendInBlue error: {exception.Message}.", exception, _workContext.CurrentCustomer);
-                return (null, false, exception.Message);
+                return (null, false, null, exception.Message);
             }
         }
 

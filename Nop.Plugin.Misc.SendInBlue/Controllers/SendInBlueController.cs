@@ -101,9 +101,21 @@ namespace Nop.Plugin.Misc.SendInBlue.Controllers
             model.SenderId = sendInBlueSettings.SenderId;
             model.UseSmsNotifications = sendInBlueSettings.UseSmsNotifications;
             model.SmsSenderName = sendInBlueSettings.SmsSenderName;
-            model.StoreOwnerPhoneNumber = sendInBlueSettings.StoreOwnerPhoneNumber;
-            model.MarketingAutomationKey = sendInBlueSettings.MarketingAutomationKey;
+            model.StoreOwnerPhoneNumber = sendInBlueSettings.StoreOwnerPhoneNumber;            
             model.UseMarketingAutomation = sendInBlueSettings.UseMarketingAutomation;
+            model.TrackingScript = sendInBlueSettings.TrackingScript;
+
+            //check whether email account exists
+            if (sendInBlueSettings.UseSmtp && _emailAccountService.GetEmailAccountById(sendInBlueSettings.EmailAccountId) != null)
+                model.UseSmtp = sendInBlueSettings.UseSmtp;
+
+            //get account info
+            var (accountInfo, marketingAutomationEnabled, MAkey, accountErrors) = _sendInBlueEmailManager.GetAccountInfo();
+            model.AccountInfo = accountInfo;
+            model.MarketingAutomationKey = MAkey;
+            model.MarketingAutomationDisabled = !marketingAutomationEnabled;
+            if (!string.IsNullOrEmpty(accountErrors))
+                ErrorNotification(SendInBlueDefaults.NotificationMessage + accountErrors);
 
             //prepare overridable settings
             if (storeId > 0)
@@ -115,17 +127,6 @@ namespace Nop.Plugin.Misc.SendInBlue.Controllers
                 model.SmsSenderName_OverrideForStore = _settingService.SettingExists(sendInBlueSettings, x => x.SmsSenderName, storeId);
                 model.UseMarketingAutomation_OverrideForStore = _settingService.SettingExists(sendInBlueSettings, x => x.UseMarketingAutomation, storeId);
             }
-
-            //check whether email account exists
-            if (sendInBlueSettings.UseSmtp && _emailAccountService.GetEmailAccountById(sendInBlueSettings.EmailAccountId) != null)
-                model.UseSmtp = sendInBlueSettings.UseSmtp;
-
-            //get account info
-            var (accountInfo, marketingAutomationEnabled, accountErrors) = _sendInBlueEmailManager.GetAccountInfo();
-            model.AccountInfo = accountInfo;
-            model.MarketingAutomationDisabled = !marketingAutomationEnabled;
-            if (!string.IsNullOrEmpty(accountErrors))
-                ErrorNotification(SendInBlueDefaults.NotificationMessage + accountErrors);
 
             //check SMTP status
             var (smtpEnabled, smtpErrors) = _sendInBlueEmailManager.SmtpIsEnabled();
@@ -528,8 +529,15 @@ namespace Nop.Plugin.Misc.SendInBlue.Controllers
 
             sendInBlueSettings.UseMarketingAutomation = model.UseMarketingAutomation;
             _settingService.SaveSettingOverridablePerStore(sendInBlueSettings, x => x.UseMarketingAutomation, model.UseMarketingAutomation_OverrideForStore, storeId, false);
-            sendInBlueSettings.MarketingAutomationKey = model.MarketingAutomationKey;
+
+            var (accountInfo, marketingAutomationEnabled, MAkey, accountErrors) = _sendInBlueEmailManager.GetAccountInfo();
+            sendInBlueSettings.MarketingAutomationKey = MAkey;
+            if (!string.IsNullOrEmpty(accountErrors))
+                ErrorNotification(SendInBlueDefaults.NotificationMessage + accountErrors);
+
             _settingService.SaveSetting(sendInBlueSettings, x => x.MarketingAutomationKey, clearCache: false);
+            sendInBlueSettings.TrackingScript = model.TrackingScript;
+            _settingService.SaveSetting(sendInBlueSettings, x => x.TrackingScript, clearCache: false);
 
             //now clear settings cache
             _settingService.ClearCache();

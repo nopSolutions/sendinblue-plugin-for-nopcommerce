@@ -81,6 +81,9 @@ namespace Nop.Plugin.Misc.SendInBlue.Models
 
         public bool MarketingAutomationDisabled { get; set; }
 
+        [NopResourceDisplayName("Plugins.Misc.SendInBlue.Fields.TrackingScript")]
+        public string TrackingScript { get; set; }
+
         #endregion
     }
 }

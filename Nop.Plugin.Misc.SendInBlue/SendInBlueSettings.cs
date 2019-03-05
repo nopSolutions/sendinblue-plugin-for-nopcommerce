@@ -63,6 +63,11 @@ namespace Nop.Plugin.Misc.SendInBlue
         public string StoreOwnerPhoneNumber { get; set; }
 
         /// <summary>
+        /// Gets or sets the Tracking script
+        /// </summary>
+        public string TrackingScript { get; set; }
+
+        /// <summary>
         /// Gets or sets the Marketing Automation key (Tracker ID)
         /// </summary>
         public string MarketingAutomationKey { get; set; }
