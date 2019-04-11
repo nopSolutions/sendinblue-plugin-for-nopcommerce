@@ -1,4 +1,4 @@
-﻿namespace Nop.Plugin.Misc.SendInBlue.Models
+﻿namespace Nop.Plugin.Misc.SendinBlue.Models
 {
     /// <summary>
     /// Represents SMS model

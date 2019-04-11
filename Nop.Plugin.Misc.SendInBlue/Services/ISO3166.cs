@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 
-namespace Nop.Plugin.Misc.SendInBlue.Services
+namespace Nop.Plugin.Misc.SendinBlue.Services
 {
     public static class ISO3166
     {

@@ -5,14 +5,14 @@ using Nop.Services.Logging;
 using Nop.Web.Framework.Components;
 using System;
 
-namespace Nop.Plugin.Misc.SendInBlue.Components
+namespace Nop.Plugin.Misc.SendinBlue.Components
 {
-    [ViewComponent(Name = "WidgetsSendInBlue")]
-    public class WidgetsSendInBlueViewComponent: NopViewComponent
+    [ViewComponent(Name = "WidgetsSendinBlue")]
+    public class WidgetsSendinBlueViewComponent: NopViewComponent
     {
         #region Fields
 
-        private readonly SendInBlueSettings _sendInBlueSettings;
+        private readonly SendinBlueSettings _sendInBlueSettings;
         private readonly ILogger _logger;
         private readonly IStoreContext _storeContext;
         private readonly IWorkContext _workContext;
@@ -21,8 +21,8 @@ namespace Nop.Plugin.Misc.SendInBlue.Components
 
         #region Ctor
 
-        public WidgetsSendInBlueViewComponent(
-            SendInBlueSettings sendInBlueSettings,
+        public WidgetsSendinBlueViewComponent(
+            SendinBlueSettings sendInBlueSettings,
             ILogger logger,
             IStoreContext storeContext,
             IWorkContext workContext)
@@ -84,9 +84,9 @@ namespace Nop.Plugin.Misc.SendInBlue.Components
             }
             catch (Exception ex)
             {
-                _logger.InsertLog(Core.Domain.Logging.LogLevel.Error, "Error creating scripts for SendInBlue tracking", ex.ToString());
+                _logger.InsertLog(Core.Domain.Logging.LogLevel.Error, "Error creating scripts for SendinBlue tracking", ex.ToString());
             }
-            return View("~/Plugins/Misc.SendInBlue/Views/PublicInfo.cshtml", script);
+            return View("~/Plugins/Misc.SendinBlue/Views/PublicInfo.cshtml", script);
         }
 
         #endregion

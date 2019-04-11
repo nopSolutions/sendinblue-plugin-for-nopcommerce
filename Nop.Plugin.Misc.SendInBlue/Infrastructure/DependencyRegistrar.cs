@@ -2,13 +2,13 @@
 using Nop.Core.Configuration;
 using Nop.Core.Infrastructure;
 using Nop.Core.Infrastructure.DependencyManagement;
-using Nop.Plugin.Misc.SendInBlue.Services;
+using Nop.Plugin.Misc.SendinBlue.Services;
 using Nop.Services.Messages;
 
-namespace Nop.Plugin.Misc.SendInBlue.Infrastructure
+namespace Nop.Plugin.Misc.SendinBlue.Infrastructure
 {
     /// <summary>
-    /// Represents a SendInBlue dependency registrar
+    /// Represents a SendinBlue dependency registrar
     /// </summary>
     public class DependencyRegistrar : IDependencyRegistrar
     {
@@ -21,12 +21,12 @@ namespace Nop.Plugin.Misc.SendInBlue.Infrastructure
         public void Register(ContainerBuilder builder, ITypeFinder typeFinder, NopConfig config)
         {
             //register custom services
-            builder.RegisterType<SendInBlueManager>().AsSelf().InstancePerLifetimeScope();
-            builder.RegisterType<SendInBlueMarketingAutomationManager>().AsSelf().InstancePerLifetimeScope();
+            builder.RegisterType<SendinBlueManager>().AsSelf().InstancePerLifetimeScope();
+            builder.RegisterType<SendinBlueMarketingAutomationManager>().AsSelf().InstancePerLifetimeScope();
 
             //override services
-            builder.RegisterType<SendInBlueMessageService>().As<IWorkflowMessageService>().InstancePerLifetimeScope();
-            builder.RegisterType<SendInBlueEmailSender>().As<IEmailSender>().InstancePerLifetimeScope();
+            builder.RegisterType<SendinBlueMessageService>().As<IWorkflowMessageService>().InstancePerLifetimeScope();
+            builder.RegisterType<SendinBlueEmailSender>().As<IEmailSender>().InstancePerLifetimeScope();
         }
 
         /// <summary>

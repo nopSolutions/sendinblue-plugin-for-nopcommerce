@@ -21,12 +21,12 @@ using Nop.Services.Localization;
 using Nop.Services.Messages;
 using Nop.Services.Stores;
 
-namespace Nop.Plugin.Misc.SendInBlue.Services
+namespace Nop.Plugin.Misc.SendinBlue.Services
 {
     /// <summary>
-    /// SendInBlue message service
+    /// SendinBlue message service
     /// </summary>
-    public class SendInBlueMessageService : WorkflowMessageService
+    public class SendinBlueMessageService : WorkflowMessageService
     {
         #region Fields
 
@@ -40,14 +40,14 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
         private readonly IStoreContext _storeContext;
         private readonly IStoreService _storeService;
         private readonly ITokenizer _tokenizer;
-        private readonly SendInBlueManager _sendInBlueEmailManager;
+        private readonly SendinBlueManager _sendInBlueEmailManager;
         private readonly ICustomerService _currentCustomerService;
 
         #endregion
 
         #region Ctor
 
-        public SendInBlueMessageService(
+        public SendinBlueMessageService(
             CommonSettings commonSettings,
             IMessageTemplateService messageTemplateService,
             IAffiliateService affiliateService,
@@ -64,7 +64,7 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
             IEventPublisher eventPublisher,
             ISettingService settingService,
             IGenericAttributeService genericAttributeService,
-            SendInBlueManager sendInBlueEmailManager)
+            SendinBlueManager sendInBlueEmailManager)
             : base(commonSettings,
                 emailAccountSettings,
                 affiliateService,
@@ -114,7 +114,7 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
             string toEmail = null, string toName = null, string attachmentFilePath = null, string attachmentFileName = null)
         {
             var store = storeId > 0 ? _storeService.GetStoreById(storeId) ?? _storeContext.CurrentStore : _storeContext.CurrentStore;
-            var sendInBlueSettings = _settingService.LoadSetting<SendInBlueSettings>(store.Id);
+            var sendInBlueSettings = _settingService.LoadSetting<SendinBlueSettings>(store.Id);
 
             languageId = EnsureLanguageIsActive(languageId, store.Id);
 
@@ -125,7 +125,7 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
             {
                 //ensure that email or sms message is active
                 var useSms = sendInBlueSettings.UseSmsNotifications &&
-                    _genericAttributeService.GetAttribute<bool>(messageTemplate, SendInBlueDefaults.UseSmsAttribute);
+                    _genericAttributeService.GetAttribute<bool>(messageTemplate, SendinBlueDefaults.UseSmsAttribute);
                 if (!useSms && !messageTemplate.IsActive)
                     return 0;
 
@@ -203,13 +203,13 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
                 if (useSms)
                 {
                     //get text with replaced tokens
-                    var text = _genericAttributeService.GetAttribute<string>(messageTemplate, SendInBlueDefaults.SmsTextAttribute);
+                    var text = _genericAttributeService.GetAttribute<string>(messageTemplate, SendinBlueDefaults.SmsTextAttribute);
                     if (!string.IsNullOrEmpty(text))
                         text = _tokenizer.Replace(text, tokens, false);
 
                     //get phone number
                     var phoneNumberTo = sendInBlueSettings.StoreOwnerPhoneNumber;
-                    switch (_genericAttributeService.GetAttribute<int>(messageTemplate, SendInBlueDefaults.PhoneTypeAttribute))
+                    switch (_genericAttributeService.GetAttribute<int>(messageTemplate, SendinBlueDefaults.PhoneTypeAttribute))
                     {
                         case 1:
                             phoneNumberTo = tokenModel.Customer != null
@@ -233,15 +233,15 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
 
                 //use standard way for the sending emails
                 if (!sendInBlueSettings.UseSmtp ||
-                    !_genericAttributeService.GetAttribute<bool>(messageTemplate, SendInBlueDefaults.SendInBlueTemplateAttribute))
+                    !_genericAttributeService.GetAttribute<bool>(messageTemplate, SendinBlueDefaults.SendinBlueTemplateAttribute))
                 {
                     return base.SendNotification(messageTemplate, emailAccount, languageId, tokens,
                         toEmail ?? emailAccount.Email, toName ?? emailAccount.DisplayName, attachmentFilePath, attachmentFileName);
                 }
 
-                //or use SendInBlue service
+                //or use SendinBlue service
                 //get message template 
-                var templateId = _genericAttributeService.GetAttribute<int>(messageTemplate, SendInBlueDefaults.TemplateIdAttribute);
+                var templateId = _genericAttributeService.GetAttribute<int>(messageTemplate, SendinBlueDefaults.TemplateIdAttribute);
                 var email = _sendInBlueEmailManager.GetQueuedEmailFromTemplate(templateId);
                 if (email == null)
                     return 0;

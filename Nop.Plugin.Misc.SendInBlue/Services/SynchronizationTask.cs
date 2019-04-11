@@ -1,7 +1,7 @@
 ﻿using Nop.Services.Plugins;
 using Nop.Services.Tasks;
 
-namespace Nop.Plugin.Misc.SendInBlue.Services
+namespace Nop.Plugin.Misc.SendinBlue.Services
 {
     /// <summary>
     /// Represents a schedule task to synchronize contacts
@@ -11,14 +11,14 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
         #region Fields
 
         private readonly IPluginFinder _pluginFinder;
-        private readonly SendInBlueManager _sendInBlueEmailManager;
+        private readonly SendinBlueManager _sendInBlueEmailManager;
 
         #endregion
 
         #region Ctor
 
         public SynchronizationTask(IPluginFinder pluginFinder,
-            SendInBlueManager sendInBlueEmailManager)
+            SendinBlueManager sendInBlueEmailManager)
         {
             _pluginFinder = pluginFinder;
             _sendInBlueEmailManager = sendInBlueEmailManager;
@@ -34,8 +34,8 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
         public void Execute()
         {
             //check whether a plugin is installed
-            var pluginDescriptor = _pluginFinder.GetPluginDescriptorBySystemName(SendInBlueDefaults.SystemName);
-            if (!pluginDescriptor.Installed || !(pluginDescriptor?.Instance() is SendInBluePlugin plugin))
+            var pluginDescriptor = _pluginFinder.GetPluginDescriptorBySystemName(SendinBlueDefaults.SystemName);
+            if (!pluginDescriptor.Installed || !(pluginDescriptor?.Instance() is SendinBluePlugin plugin))
                 return;
 
             //synchronize

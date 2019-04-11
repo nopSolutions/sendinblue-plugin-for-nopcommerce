@@ -2,10 +2,10 @@
 using Microsoft.AspNetCore.Routing;
 using Nop.Web.Framework.Mvc.Routing;
 
-namespace Nop.Plugin.Misc.SendInBlue.Infrastructure
+namespace Nop.Plugin.Misc.SendinBlue.Infrastructure
 {
     /// <summary>
-    /// Represents a SendInBlue route provider
+    /// Represents a SendinBlue route provider
     /// </summary>
     public class RouteProvider : IRouteProvider
     {
@@ -15,13 +15,13 @@ namespace Nop.Plugin.Misc.SendInBlue.Infrastructure
         /// <param name="routeBuilder">Route builder</param>
         public void RegisterRoutes(IRouteBuilder routeBuilder)
         {
-            routeBuilder.MapRoute(SendInBlueDefaults.ImportContactsRoute,
-                "Plugins/SendInBlue/ImportContacts",
-                new { controller = "SendInBlue", action = "ImportContacts" });
+            routeBuilder.MapRoute(SendinBlueDefaults.ImportContactsRoute,
+                "Plugins/SendinBlue/ImportContacts",
+                new { controller = "SendinBlue", action = "ImportContacts" });
 
-            routeBuilder.MapRoute(SendInBlueDefaults.UnsubscribeContactRoute,
-                "Plugins/SendInBlue/UnsubscribeWebHook",
-                new { controller = "SendInBlue", action = "UnsubscribeWebHook" });
+            routeBuilder.MapRoute(SendinBlueDefaults.UnsubscribeContactRoute,
+                "Plugins/SendinBlue/UnsubscribeWebHook",
+                new { controller = "SendinBlue", action = "UnsubscribeWebHook" });
         }
 
         /// <summary>

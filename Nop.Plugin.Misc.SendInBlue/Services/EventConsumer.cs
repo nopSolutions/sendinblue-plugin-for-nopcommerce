@@ -3,10 +3,10 @@ using Nop.Core.Domain.Orders;
 using Nop.Core.Events;
 using Nop.Services.Events;
 
-namespace Nop.Plugin.Misc.SendInBlue.Services
+namespace Nop.Plugin.Misc.SendinBlue.Services
 {
     /// <summary>
-    /// Represents a SendInBlue event consumer
+    /// Represents a SendinBlue event consumer
     /// </summary>
     public class EventConsumer :
         IConsumer<EmailUnsubscribedEvent>,
@@ -19,15 +19,15 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
     {
         #region Fields
 
-        private readonly SendInBlueManager _sendInBlueEmailManager;
-        private readonly SendInBlueMarketingAutomationManager _sendInBlueMarketingAutomationManager;
+        private readonly SendinBlueManager _sendInBlueEmailManager;
+        private readonly SendinBlueMarketingAutomationManager _sendInBlueMarketingAutomationManager;
 
         #endregion
 
         #region Ctor
 
-        public EventConsumer(SendInBlueManager sendInBlueEmailManager,
-            SendInBlueMarketingAutomationManager sendInBlueMarketingAutomationManager)
+        public EventConsumer(SendinBlueManager sendInBlueEmailManager,
+            SendinBlueMarketingAutomationManager sendInBlueMarketingAutomationManager)
         {
             _sendInBlueEmailManager = sendInBlueEmailManager;
             _sendInBlueMarketingAutomationManager = sendInBlueMarketingAutomationManager;

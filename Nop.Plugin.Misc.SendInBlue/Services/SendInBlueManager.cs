@@ -19,17 +19,17 @@ using Nop.Services.Logging;
 using Nop.Services.Messages;
 using Nop.Services.Stores;
 using Nop.Web.Framework.UI;
-using SendInBlue.Api;
-using SendInBlue.Client;
-using SendInBlue.Model;
-using static SendInBlue.Model.GetAttributesAttributes;
+using SendinBlue.Api;
+using SendinBlue.Client;
+using SendinBlue.Model;
+using static SendinBlue.Model.GetAttributesAttributes;
 
-namespace Nop.Plugin.Misc.SendInBlue.Services
+namespace Nop.Plugin.Misc.SendinBlue.Services
 {
     /// <summary>
-    /// Represents SendInBlue manager
+    /// Represents SendinBlue manager
     /// </summary>
-    public class SendInBlueManager
+    public class SendinBlueManager
     {
         #region Fields
 
@@ -51,7 +51,7 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
 
         #region Ctor
 
-        public SendInBlueManager(IActionContextAccessor actionContextAccessor,
+        public SendinBlueManager(IActionContextAccessor actionContextAccessor,
             ICountryService countryService,
             ICustomerService customerService,
             IEmailAccountService emailAccountService,
@@ -91,14 +91,14 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
         private TClient CreateApiClient<TClient>(Func<Configuration, TClient> clientCtor) where TClient : IApiAccessor
         {
             //check whether plugin is configured to request services (validate API key)
-            var sendInBlueSettings = _settingService.LoadSetting<SendInBlueSettings>();
+            var sendInBlueSettings = _settingService.LoadSetting<SendinBlueSettings>();
             if (string.IsNullOrEmpty(sendInBlueSettings.ApiKey))
                 throw new NopException($"Plugin not configured");
 
             var apiConfiguration = new Configuration()
             {
-                ApiKey = new Dictionary<string, string> { [SendInBlueDefaults.ApiKeyHeader] = sendInBlueSettings.ApiKey },
-                UserAgent = SendInBlueDefaults.UserAgent
+                ApiKey = new Dictionary<string, string> { [SendinBlueDefaults.ApiKeyHeader] = sendInBlueSettings.ApiKey },
+                UserAgent = SendinBlueDefaults.UserAgent
             };
 
             return clientCtor(apiConfiguration);
@@ -122,10 +122,10 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
                 foreach (var storeId in storeIds)
                 {
                     //get list identifier from the settings
-                    var listId = _settingService.GetSettingByKey<int>("SendInBlueSettings.ListId", storeId: storeId);
+                    var listId = _settingService.GetSettingByKey<int>("SendinBlueSettings.ListId", storeId: storeId);
                     if (listId == 0)
                     {
-                        _logger.Warning($"SendInBlue synchronization warning: List ID is empty for store #{storeId}");
+                        _logger.Warning($"SendinBlue synchronization warning: List ID is empty for store #{storeId}");
                         messages.Add((NotifyType.Warning, $"List ID is empty for store #{storeId}"));
                         continue;
                     }
@@ -134,71 +134,71 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
                     var subscriptions = _newsLetterSubscriptionService.GetAllNewsLetterSubscriptions(storeId: storeId, isActive: true);
                     if (!subscriptions.Any())
                     {
-                        _logger.Warning($"SendInBlue synchronization warning: There are no subscriptions for store #{storeId}");
+                        _logger.Warning($"SendinBlue synchronization warning: There are no subscriptions for store #{storeId}");
                         messages.Add((NotifyType.Warning, $"There are no subscriptions for store #{storeId}"));
                         continue;
                     }
 
                     //get notification URL
                     var urlHelper = _urlHelperFactory.GetUrlHelper(_actionContextAccessor.ActionContext);
-                    var notificationUrl = urlHelper.RouteUrl(SendInBlueDefaults.ImportContactsRoute, null, _webHelper.CurrentRequestProtocol);
+                    var notificationUrl = urlHelper.RouteUrl(SendinBlueDefaults.ImportContactsRoute, null, _webHelper.CurrentRequestProtocol);
 
                     var name = string.Empty;
 
                     switch (GetAccountLanguage())
                     {
-                        case SendInBlueAccountLanguage.French:
+                        case SendinBlueAccountLanguage.French:
                             name = 
-                                $"{SendInBlueDefaults.FirstNameFrenchServiceAttribute};" +
-                                $"{SendInBlueDefaults.LastNameFrenchServiceAttribute};";
+                                $"{SendinBlueDefaults.FirstNameFrenchServiceAttribute};" +
+                                $"{SendinBlueDefaults.LastNameFrenchServiceAttribute};";
                             break;
-                        case SendInBlueAccountLanguage.German:
+                        case SendinBlueAccountLanguage.German:
                             name =
-                                $"{SendInBlueDefaults.FirstNameGermanServiceAttribute};" +
-                                $"{SendInBlueDefaults.LastNameGermanServiceAttribute};";
+                                $"{SendinBlueDefaults.FirstNameGermanServiceAttribute};" +
+                                $"{SendinBlueDefaults.LastNameGermanServiceAttribute};";
                             break;
-                        case SendInBlueAccountLanguage.Italian:
+                        case SendinBlueAccountLanguage.Italian:
                             name =
-                                $"{SendInBlueDefaults.FirstNameItalianServiceAttribute};" +
-                                $"{SendInBlueDefaults.LastNameItalianServiceAttribute};";
+                                $"{SendinBlueDefaults.FirstNameItalianServiceAttribute};" +
+                                $"{SendinBlueDefaults.LastNameItalianServiceAttribute};";
                             break;
-                        case SendInBlueAccountLanguage.Portuguese:
+                        case SendinBlueAccountLanguage.Portuguese:
                             name =
-                                $"{SendInBlueDefaults.FirstNamePortugueseServiceAttribute};" +
-                                $"{SendInBlueDefaults.LastNamePortugueseServiceAttribute};";
+                                $"{SendinBlueDefaults.FirstNamePortugueseServiceAttribute};" +
+                                $"{SendinBlueDefaults.LastNamePortugueseServiceAttribute};";
                             break;
-                        case SendInBlueAccountLanguage.Spanish:
+                        case SendinBlueAccountLanguage.Spanish:
                             name =
-                                $"{SendInBlueDefaults.FirstNameSpanishServiceAttribute};" +
-                                $"{SendInBlueDefaults.LastNameSpanishServiceAttribute};";
+                                $"{SendinBlueDefaults.FirstNameSpanishServiceAttribute};" +
+                                $"{SendinBlueDefaults.LastNameSpanishServiceAttribute};";
                             break;
 
-                        case SendInBlueAccountLanguage.Default:
+                        case SendinBlueAccountLanguage.Default:
                             name =
-                                $"{SendInBlueDefaults.FirstNameServiceAttribute};" +
-                                $"{SendInBlueDefaults.LastNameServiceAttribute};";
+                                $"{SendinBlueDefaults.FirstNameServiceAttribute};" +
+                                $"{SendinBlueDefaults.LastNameServiceAttribute};";
                             break;
                     }
 
                     //prepare CSV 
                     var title =
-                        $"{SendInBlueDefaults.EmailServiceAttribute};" +
+                        $"{SendinBlueDefaults.EmailServiceAttribute};" +
                         name +
-                        $"{SendInBlueDefaults.UsernameServiceAttribute};" +
-                        $"{SendInBlueDefaults.SMSServiceAttribute};" +
-                        $"{SendInBlueDefaults.PhoneServiceAttribute};" +
-                        $"{SendInBlueDefaults.CountryServiceAttribute};" +
-                        $"{SendInBlueDefaults.StoreIdServiceAttribute};" +
-                        $"{SendInBlueDefaults.GenderServiceAttribute};" +
-                        $"{SendInBlueDefaults.DateOfBirthServiceAttribute};" +
-                        $"{SendInBlueDefaults.CompanyServiceAttribute};" +
-                        $"{SendInBlueDefaults.Address1ServiceAttribute};" +
-                        $"{SendInBlueDefaults.Address2ServiceAttribute};" +
-                        $"{SendInBlueDefaults.ZipCodeServiceAttribute};" +
-                        $"{SendInBlueDefaults.CityServiceAttribute};" +
-                        $"{SendInBlueDefaults.CountyServiceAttribute};" +
-                        $"{SendInBlueDefaults.StateServiceAttribute};" +
-                        $"{SendInBlueDefaults.FaxServiceAttribute}";
+                        $"{SendinBlueDefaults.UsernameServiceAttribute};" +
+                        $"{SendinBlueDefaults.SMSServiceAttribute};" +
+                        $"{SendinBlueDefaults.PhoneServiceAttribute};" +
+                        $"{SendinBlueDefaults.CountryServiceAttribute};" +
+                        $"{SendinBlueDefaults.StoreIdServiceAttribute};" +
+                        $"{SendinBlueDefaults.GenderServiceAttribute};" +
+                        $"{SendinBlueDefaults.DateOfBirthServiceAttribute};" +
+                        $"{SendinBlueDefaults.CompanyServiceAttribute};" +
+                        $"{SendinBlueDefaults.Address1ServiceAttribute};" +
+                        $"{SendinBlueDefaults.Address2ServiceAttribute};" +
+                        $"{SendinBlueDefaults.ZipCodeServiceAttribute};" +
+                        $"{SendinBlueDefaults.CityServiceAttribute};" +
+                        $"{SendinBlueDefaults.CountyServiceAttribute};" +
+                        $"{SendinBlueDefaults.StateServiceAttribute};" +
+                        $"{SendinBlueDefaults.FaxServiceAttribute}";
                     var csv = subscriptions.Aggregate(title, (all, subscription) =>
                     {
                         var firstName = string.Empty;
@@ -277,8 +277,8 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
             catch (Exception exception)
             {
                 //log full error
-                _logger.Error($"SendInBlue synchronization error: {exception.Message}", exception, _workContext.CurrentCustomer);
-                messages.Add((NotifyType.Error, $"SendInBlue synchronization error: {exception.Message}"));
+                _logger.Error($"SendinBlue synchronization error: {exception.Message}", exception, _workContext.CurrentCustomer);
+                messages.Add((NotifyType.Error, $"SendinBlue synchronization error: {exception.Message}"));
             }
 
             return messages;
@@ -301,10 +301,10 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
                 foreach (var storeId in storeIds)
                 {
                     //get list identifier from the settings
-                    var listId = _settingService.GetSettingByKey<int>("SendInBlueSettings.ListId", storeId: storeId, loadSharedValueIfNotFound: true);
+                    var listId = _settingService.GetSettingByKey<int>("SendinBlueSettings.ListId", storeId: storeId, loadSharedValueIfNotFound: true);
                     if (listId == 0)
                     {
-                        _logger.Warning($"SendInBlue synchronization warning: List ID is empty for store #{storeId}");
+                        _logger.Warning($"SendinBlue synchronization warning: List ID is empty for store #{storeId}");
                         messages.Add((NotifyType.Warning, $"List ID is empty for store #{storeId}"));
                         continue;
                     }
@@ -334,8 +334,8 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
             catch (Exception exception)
             {
                 //log full error
-                _logger.Error($"SendInBlue synchronization error: {exception.Message}", exception, _workContext.CurrentCustomer);
-                messages.Add((NotifyType.Error, $"SendInBlue synchronization error: {exception.Message}"));
+                _logger.Error($"SendinBlue synchronization error: {exception.Message}", exception, _workContext.CurrentCustomer);
+                messages.Add((NotifyType.Error, $"SendinBlue synchronization error: {exception.Message}"));
             }
 
             return messages;
@@ -369,7 +369,7 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
             catch (Exception exception)
             {
                 //log full error
-                _logger.Error($"SendInBlue error: {exception.Message}.", exception, _workContext.CurrentCustomer);
+                _logger.Error($"SendinBlue error: {exception.Message}.", exception, _workContext.CurrentCustomer);
                 return exception.Message;
             }
 
@@ -394,7 +394,7 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
             try
             {
                 //whether plugin is configured
-                var sendInBlueSettings = _settingService.LoadSetting<SendInBlueSettings>();
+                var sendInBlueSettings = _settingService.LoadSetting<SendinBlueSettings>();
                 if (string.IsNullOrEmpty(sendInBlueSettings.ApiKey))
                     throw new NopException($"Plugin not configured");
 
@@ -414,8 +414,8 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
             catch (Exception exception)
             {
                 //log full error
-                _logger.Error($"SendInBlue synchronization error: {exception.Message}.", exception, _workContext.CurrentCustomer);
-                messages.Add((NotifyType.Error, $"SendInBlue synchronization error: {exception.Message}"));
+                _logger.Error($"SendinBlue synchronization error: {exception.Message}.", exception, _workContext.CurrentCustomer);
+                messages.Add((NotifyType.Error, $"SendinBlue synchronization error: {exception.Message}"));
             }
 
             return messages;
@@ -433,12 +433,12 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
                 var client = CreateApiClient(config => new ContactsApi(config));
 
                 //try to get list identifier
-                var listId = _settingService.GetSettingByKey<int>("SendInBlueSettings.ListId", storeId: subscription.StoreId);
+                var listId = _settingService.GetSettingByKey<int>("SendinBlueSettings.ListId", storeId: subscription.StoreId);
                 if (listId == 0)
-                    listId = _settingService.GetSettingByKey<int>("SendInBlueSettings.ListId");
+                    listId = _settingService.GetSettingByKey<int>("SendinBlueSettings.ListId");
                 if (listId == 0)
                 {
-                    _logger.Warning($"SendInBlue synchronization warning: List ID is empty for store #{subscription.StoreId}");
+                    _logger.Warning($"SendinBlue synchronization warning: List ID is empty for store #{subscription.StoreId}");
                     return;
                 }
 
@@ -497,48 +497,48 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
 
                     var attributes = new Dictionary<string, string>
                     {
-                        [SendInBlueDefaults.UsernameServiceAttribute] = customer?.Username,
-                        [SendInBlueDefaults.SMSServiceAttribute] = SMS,
-                        [SendInBlueDefaults.PhoneServiceAttribute] = phone,
-                        [SendInBlueDefaults.CountryServiceAttribute] = countryName,
-                        [SendInBlueDefaults.StoreIdServiceAttribute] = subscription.StoreId.ToString(),
-                        [SendInBlueDefaults.GenderServiceAttribute] = gender,
-                        [SendInBlueDefaults.DateOfBirthServiceAttribute] = dateOfBirth,
-                        [SendInBlueDefaults.CompanyServiceAttribute] = company,
-                        [SendInBlueDefaults.Address1ServiceAttribute] = address1,
-                        [SendInBlueDefaults.Address2ServiceAttribute] = address2,
-                        [SendInBlueDefaults.ZipCodeServiceAttribute] = zipCode,
-                        [SendInBlueDefaults.CityServiceAttribute] = city,
-                        [SendInBlueDefaults.CountyServiceAttribute] = county,
-                        [SendInBlueDefaults.StateServiceAttribute] = state,
-                        [SendInBlueDefaults.FaxServiceAttribute] = fax
+                        [SendinBlueDefaults.UsernameServiceAttribute] = customer?.Username,
+                        [SendinBlueDefaults.SMSServiceAttribute] = SMS,
+                        [SendinBlueDefaults.PhoneServiceAttribute] = phone,
+                        [SendinBlueDefaults.CountryServiceAttribute] = countryName,
+                        [SendinBlueDefaults.StoreIdServiceAttribute] = subscription.StoreId.ToString(),
+                        [SendinBlueDefaults.GenderServiceAttribute] = gender,
+                        [SendinBlueDefaults.DateOfBirthServiceAttribute] = dateOfBirth,
+                        [SendinBlueDefaults.CompanyServiceAttribute] = company,
+                        [SendinBlueDefaults.Address1ServiceAttribute] = address1,
+                        [SendinBlueDefaults.Address2ServiceAttribute] = address2,
+                        [SendinBlueDefaults.ZipCodeServiceAttribute] = zipCode,
+                        [SendinBlueDefaults.CityServiceAttribute] = city,
+                        [SendinBlueDefaults.CountyServiceAttribute] = county,
+                        [SendinBlueDefaults.StateServiceAttribute] = state,
+                        [SendinBlueDefaults.FaxServiceAttribute] = fax
                     };
 
                     switch (GetAccountLanguage())
                     {
-                        case SendInBlueAccountLanguage.French:
-                            attributes.Add(SendInBlueDefaults.FirstNameFrenchServiceAttribute, firstName);
-                            attributes.Add(SendInBlueDefaults.LastNameFrenchServiceAttribute, lastName);                            
+                        case SendinBlueAccountLanguage.French:
+                            attributes.Add(SendinBlueDefaults.FirstNameFrenchServiceAttribute, firstName);
+                            attributes.Add(SendinBlueDefaults.LastNameFrenchServiceAttribute, lastName);                            
                             break;
-                        case SendInBlueAccountLanguage.German:
-                            attributes.Add(SendInBlueDefaults.FirstNameGermanServiceAttribute, firstName);
-                            attributes.Add(SendInBlueDefaults.LastNameGermanServiceAttribute, lastName);
+                        case SendinBlueAccountLanguage.German:
+                            attributes.Add(SendinBlueDefaults.FirstNameGermanServiceAttribute, firstName);
+                            attributes.Add(SendinBlueDefaults.LastNameGermanServiceAttribute, lastName);
                             break;
-                        case SendInBlueAccountLanguage.Italian:
-                            attributes.Add(SendInBlueDefaults.FirstNameItalianServiceAttribute, firstName);
-                            attributes.Add(SendInBlueDefaults.LastNameItalianServiceAttribute, lastName);
+                        case SendinBlueAccountLanguage.Italian:
+                            attributes.Add(SendinBlueDefaults.FirstNameItalianServiceAttribute, firstName);
+                            attributes.Add(SendinBlueDefaults.LastNameItalianServiceAttribute, lastName);
                             break;
-                        case SendInBlueAccountLanguage.Portuguese:
-                            attributes.Add(SendInBlueDefaults.FirstNamePortugueseServiceAttribute, firstName);
-                            attributes.Add(SendInBlueDefaults.LastNamePortugueseServiceAttribute, lastName);
+                        case SendinBlueAccountLanguage.Portuguese:
+                            attributes.Add(SendinBlueDefaults.FirstNamePortugueseServiceAttribute, firstName);
+                            attributes.Add(SendinBlueDefaults.LastNamePortugueseServiceAttribute, lastName);
                             break;
-                        case SendInBlueAccountLanguage.Spanish:
-                            attributes.Add(SendInBlueDefaults.FirstNameSpanishServiceAttribute, firstName);
-                            attributes.Add(SendInBlueDefaults.LastNameSpanishServiceAttribute, lastName);
+                        case SendinBlueAccountLanguage.Spanish:
+                            attributes.Add(SendinBlueDefaults.FirstNameSpanishServiceAttribute, firstName);
+                            attributes.Add(SendinBlueDefaults.LastNameSpanishServiceAttribute, lastName);
                             break;
-                        case SendInBlueAccountLanguage.Default:
-                            attributes.Add(SendInBlueDefaults.FirstNameServiceAttribute, firstName);
-                            attributes.Add(SendInBlueDefaults.LastNameServiceAttribute, lastName);
+                        case SendinBlueAccountLanguage.Default:
+                            attributes.Add(SendinBlueDefaults.FirstNameServiceAttribute, firstName);
+                            attributes.Add(SendinBlueDefaults.LastNameServiceAttribute, lastName);
                             break;
                     }
 
@@ -565,7 +565,7 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
             catch (Exception exception)
             {
                 //log full error
-                _logger.Error($"SendInBlue error: {exception.Message}.", exception, _workContext.CurrentCustomer);
+                _logger.Error($"SendinBlue error: {exception.Message}.", exception, _workContext.CurrentCustomer);
             }
         }
 
@@ -581,12 +581,12 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
                 var client = CreateApiClient(config => new ContactsApi(config));
 
                 //try to get list identifier
-                var listId = _settingService.GetSettingByKey<int>("SendInBlueSettings.ListId", storeId: subscription.StoreId);
+                var listId = _settingService.GetSettingByKey<int>("SendinBlueSettings.ListId", storeId: subscription.StoreId);
                 if (listId == 0)
-                    listId = _settingService.GetSettingByKey<int>("SendInBlueSettings.ListId");
+                    listId = _settingService.GetSettingByKey<int>("SendinBlueSettings.ListId");
                 if (listId == 0)
                 {
-                    _logger.Warning($"SendInBlue synchronization warning: List ID is empty for store #{subscription.StoreId}");
+                    _logger.Warning($"SendinBlue synchronization warning: List ID is empty for store #{subscription.StoreId}");
                     return;
                 }
 
@@ -600,7 +600,7 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
             catch (Exception exception)
             {
                 //log full error
-                _logger.Error($"SendInBlue error: {exception.Message}.", exception, _workContext.CurrentCustomer);
+                _logger.Error($"SendinBlue error: {exception.Message}.", exception, _workContext.CurrentCustomer);
             }
         }
 
@@ -613,7 +613,7 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
             try
             {
                 //whether plugin is configured
-                var sendInBlueSettings = _settingService.LoadSetting<SendInBlueSettings>();
+                var sendInBlueSettings = _settingService.LoadSetting<SendinBlueSettings>();
                 if (string.IsNullOrEmpty(sendInBlueSettings.ApiKey))
                     throw new NopException($"Plugin not configured");
 
@@ -635,12 +635,12 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
                 //update subscription
                 subscription.Active = false;
                 _newsLetterSubscriptionService.UpdateNewsLetterSubscription(subscription);
-                _logger.Information($"SendInBlue unsubscription: email {email}, store #{storeId}, date {unsubscriber?.date_event}");
+                _logger.Information($"SendinBlue unsubscription: email {email}, store #{storeId}, date {unsubscriber?.date_event}");
             }
             catch (Exception exception)
             {
                 //log full error
-                _logger.Error($"SendInBlue error: {exception.Message}.", exception, _workContext.CurrentCustomer);
+                _logger.Error($"SendinBlue error: {exception.Message}.", exception, _workContext.CurrentCustomer);
             }
         }
 
@@ -656,7 +656,7 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
                 var client = CreateApiClient(config => new WebhooksApi(config));
 
                 //check whether webhook already exist
-                var sendInBlueSettings = _settingService.LoadSetting<SendInBlueSettings>();
+                var sendInBlueSettings = _settingService.LoadSetting<SendinBlueSettings>();
                 if (sendInBlueSettings.UnsubscribeWebhookId != 0)
                 {
                     client.GetWebhook(sendInBlueSettings.UnsubscribeWebhookId);
@@ -665,7 +665,7 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
 
                 //or create new one
                 var urlHelper = _urlHelperFactory.GetUrlHelper(_actionContextAccessor.ActionContext);
-                var notificationUrl = urlHelper.RouteUrl(SendInBlueDefaults.UnsubscribeContactRoute, null, _webHelper.CurrentRequestProtocol);
+                var notificationUrl = urlHelper.RouteUrl(SendinBlueDefaults.UnsubscribeContactRoute, null, _webHelper.CurrentRequestProtocol);
                 var webhook = new CreateWebhook(notificationUrl, "Unsubscribe event webhook",
                     new List<CreateWebhook.EventsEnum> { CreateWebhook.EventsEnum.Unsubscribed }, CreateWebhook.TypeEnum.Transactional);
                 var result = client.CreateWebhook(webhook);
@@ -675,7 +675,7 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
             catch (Exception exception)
             {
                 //log full error
-                _logger.Error($"SendInBlue error: {exception.Message}.", exception, _workContext.CurrentCustomer);
+                _logger.Error($"SendinBlue error: {exception.Message}.", exception, _workContext.CurrentCustomer);
                 return 0;
             }
         }
@@ -694,10 +694,10 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
                 //update contact
                 var attributes = new Dictionary<string, string>
                 {
-                    [SendInBlueDefaults.IdServiceAttribute] = order.Id.ToString(),
-                    [SendInBlueDefaults.OrderIdServiceAttribute] = order.Id.ToString(),
-                    [SendInBlueDefaults.OrderDateServiceAttribute] = order.PaidDateUtc.ToString(),
-                    [SendInBlueDefaults.OrderTotalServiceAttribute] = order.OrderTotal.ToString()
+                    [SendinBlueDefaults.IdServiceAttribute] = order.Id.ToString(),
+                    [SendinBlueDefaults.OrderIdServiceAttribute] = order.Id.ToString(),
+                    [SendinBlueDefaults.OrderDateServiceAttribute] = order.PaidDateUtc.ToString(),
+                    [SendinBlueDefaults.OrderTotalServiceAttribute] = order.OrderTotal.ToString()
                 };
                 var updateContact = new UpdateContact { Attributes = attributes };
                 client.UpdateContact(order.Customer.Email, updateContact);
@@ -705,7 +705,7 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
             catch (Exception exception)
             {
                 //log full error
-                _logger.Error($"SendInBlue error: {exception.Message}.", exception, _workContext.CurrentCustomer);
+                _logger.Error($"SendinBlue error: {exception.Message}.", exception, _workContext.CurrentCustomer);
             }
         }
 
@@ -728,7 +728,7 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
                 var account = client.GetAccount();
 
                 //prepare info
-                var info = string.Format("Name: {1}{0}Second name: {2}{0}Email: {3}{0}Email credits: {4}{0}SMS credits: {5}{0}",
+                var info = string.Format("First name: {1}{0}Last name: {2}{0}Email: {3}{0}Email credits: {4}{0}SMS credits: {5}{0}",
                     Environment.NewLine,
                     WebUtility.HtmlEncode(account.FirstName),
                     WebUtility.HtmlEncode(account.LastName),
@@ -744,7 +744,7 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
             catch (Exception exception)
             {
                 //log full error
-                _logger.Error($"SendInBlue error: {exception.Message}.", exception, _workContext.CurrentCustomer);
+                _logger.Error($"SendinBlue error: {exception.Message}.", exception, _workContext.CurrentCustomer);
                 return (null, false, null, exception.Message);
             }
         }
@@ -761,12 +761,12 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
                 var client = CreateApiClient(config => new AccountApi(config));
 
                 //set partner
-                client.SetPartner(new SetPartner(SendInBlueDefaults.PartnerName));
+                client.SetPartner(new SetPartner(SendinBlueDefaults.PartnerName));
             }
             catch (Exception exception)
             {
                 //log full error
-                _logger.Error($"SendInBlue error: {exception.Message}.", exception, _workContext.CurrentCustomer);
+                _logger.Error($"SendinBlue error: {exception.Message}.", exception, _workContext.CurrentCustomer);
                 return false;
             }
 
@@ -787,7 +787,7 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
                 var client = CreateApiClient(config => new ContactsApi(config));
 
                 //get available lists
-                var lists = client.GetLists(SendInBlueDefaults.DefaultSynchronizationListsLimit);
+                var lists = client.GetLists(SendinBlueDefaults.DefaultSynchronizationListsLimit);
 
                 //prepare id-name pairs
                 var template = new { lists = new[] { new { id = string.Empty, name = string.Empty } } };
@@ -804,7 +804,7 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
             catch (Exception exception)
             {
                 //log full error
-                _logger.Error($"SendInBlue error: {exception.Message}.", exception, _workContext.CurrentCustomer);
+                _logger.Error($"SendinBlue error: {exception.Message}.", exception, _workContext.CurrentCustomer);
                 return (availableLists, exception.Message);
             }
 
@@ -836,7 +836,7 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
             catch (Exception exception)
             {
                 //log full error
-                _logger.Error($"SendInBlue error: {exception.Message}.", exception, _workContext.CurrentCustomer);
+                _logger.Error($"SendinBlue error: {exception.Message}.", exception, _workContext.CurrentCustomer);
                 return (availableSenders, exception.Message);
             }
 
@@ -846,8 +846,8 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
         /// <summary>
         /// Get account language
         /// </summary>
-        /// <returns>SendInBlueAccountLanguage</returns>
-        public SendInBlueAccountLanguage GetAccountLanguage()
+        /// <returns>SendinBlueAccountLanguage</returns>
+        public SendinBlueAccountLanguage GetAccountLanguage()
         {
             try
             {
@@ -859,57 +859,57 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
 
                 var defaultNameAttributes = new List<string>
                 {
-                    SendInBlueDefaults.FirstNameServiceAttribute,
-                    SendInBlueDefaults.LastNameServiceAttribute
+                    SendinBlueDefaults.FirstNameServiceAttribute,
+                    SendinBlueDefaults.LastNameServiceAttribute
                 };
                 if (defaultNameAttributes.All(attr => allAttribytes.Contains(attr)))
-                    return SendInBlueAccountLanguage.Default;
+                    return SendinBlueAccountLanguage.Default;
 
                 var frenchNameAttributes = new List<string>
                 {
-                    SendInBlueDefaults.FirstNameFrenchServiceAttribute,
-                    SendInBlueDefaults.LastNameFrenchServiceAttribute
+                    SendinBlueDefaults.FirstNameFrenchServiceAttribute,
+                    SendinBlueDefaults.LastNameFrenchServiceAttribute
                 };
                 if (frenchNameAttributes.All(attr => allAttribytes.Contains(attr)))
-                    return SendInBlueAccountLanguage.French;
+                    return SendinBlueAccountLanguage.French;
 
                 var italianNameAttributes = new List<string>
                 {
-                    SendInBlueDefaults.FirstNameItalianServiceAttribute,
-                    SendInBlueDefaults.LastNameItalianServiceAttribute
+                    SendinBlueDefaults.FirstNameItalianServiceAttribute,
+                    SendinBlueDefaults.LastNameItalianServiceAttribute
                 };
                 if (italianNameAttributes.All(attr => allAttribytes.Contains(attr)))
-                    return SendInBlueAccountLanguage.Italian;
+                    return SendinBlueAccountLanguage.Italian;
 
                 var spanishNameAttributes = new List<string>
                 {
-                    SendInBlueDefaults.FirstNameSpanishServiceAttribute,
-                    SendInBlueDefaults.LastNameSpanishServiceAttribute
+                    SendinBlueDefaults.FirstNameSpanishServiceAttribute,
+                    SendinBlueDefaults.LastNameSpanishServiceAttribute
                 };
                 if (spanishNameAttributes.All(attr => allAttribytes.Contains(attr)))
-                    return SendInBlueAccountLanguage.Spanish;
+                    return SendinBlueAccountLanguage.Spanish;
 
                 var germanNameAttributes = new List<string>
                 {
-                    SendInBlueDefaults.FirstNameGermanServiceAttribute,
-                    SendInBlueDefaults.LastNameGermanServiceAttribute
+                    SendinBlueDefaults.FirstNameGermanServiceAttribute,
+                    SendinBlueDefaults.LastNameGermanServiceAttribute
                 };
                 if (germanNameAttributes.All(attr => allAttribytes.Contains(attr)))
-                    return SendInBlueAccountLanguage.German;
+                    return SendinBlueAccountLanguage.German;
 
                 var portugueseNameAttributes = new List<string>
                 {
-                    SendInBlueDefaults.FirstNamePortugueseServiceAttribute,
-                    SendInBlueDefaults.LastNamePortugueseServiceAttribute
+                    SendinBlueDefaults.FirstNamePortugueseServiceAttribute,
+                    SendinBlueDefaults.LastNamePortugueseServiceAttribute
                 };
                 if (portugueseNameAttributes.All(attr => allAttribytes.Contains(attr)))
-                    return SendInBlueAccountLanguage.Portuguese;
+                    return SendinBlueAccountLanguage.Portuguese;
                 
                 //Create default customer names attribytes
                 var initialAttributes = new List<(CategoryEnum category, string Name, string Value, CreateAttribute.TypeEnum? Type)>
                 {
-                    (CategoryEnum.Normal, SendInBlueDefaults.FirstNameServiceAttribute, null, CreateAttribute.TypeEnum.Text),
-                    (CategoryEnum.Normal, SendInBlueDefaults.LastNameServiceAttribute, null, CreateAttribute.TypeEnum.Text)
+                    (CategoryEnum.Normal, SendinBlueDefaults.FirstNameServiceAttribute, null, CreateAttribute.TypeEnum.Text),
+                    (CategoryEnum.Normal, SendinBlueDefaults.LastNameServiceAttribute, null, CreateAttribute.TypeEnum.Text)
                 };
                 //create attributes that are not already on account
                 var newAttributes = new List<(CategoryEnum category, string Name, string Value, CreateAttribute.TypeEnum? Type)>();
@@ -921,13 +921,13 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
 
                 CreateAttibutes(newAttributes);
 
-                return SendInBlueAccountLanguage.Default;
+                return SendinBlueAccountLanguage.Default;
             }
             catch (Exception exception)
             {
                 //log full error
-                _logger.Error($"SendInBlue error: {exception.Message}.", exception, _workContext.CurrentCustomer);
-                return SendInBlueAccountLanguage.Default;
+                _logger.Error($"SendinBlue error: {exception.Message}.", exception, _workContext.CurrentCustomer);
+                return SendinBlueAccountLanguage.Default;
             }
         }
 
@@ -948,29 +948,29 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
                 //prepare attributes to create
                 var initialAttributes = new List<(CategoryEnum category, string Name, string Value, CreateAttribute.TypeEnum? Type)>
                 {
-                    (CategoryEnum.Normal, SendInBlueDefaults.UsernameServiceAttribute, null, CreateAttribute.TypeEnum.Text),
-                    (CategoryEnum.Normal, SendInBlueDefaults.PhoneServiceAttribute, null, CreateAttribute.TypeEnum.Text),
-                    (CategoryEnum.Normal, SendInBlueDefaults.CountryServiceAttribute, null, CreateAttribute.TypeEnum.Text),
-                    (CategoryEnum.Normal, SendInBlueDefaults.StoreIdServiceAttribute, null, CreateAttribute.TypeEnum.Text),
-                    (CategoryEnum.Normal, SendInBlueDefaults.GenderServiceAttribute, null, CreateAttribute.TypeEnum.Text),
-                    (CategoryEnum.Normal, SendInBlueDefaults.DateOfBirthServiceAttribute, null, CreateAttribute.TypeEnum.Text),
-                    (CategoryEnum.Normal, SendInBlueDefaults.CompanyServiceAttribute, null, CreateAttribute.TypeEnum.Text),
-                    (CategoryEnum.Normal, SendInBlueDefaults.Address1ServiceAttribute, null, CreateAttribute.TypeEnum.Text),
-                    (CategoryEnum.Normal, SendInBlueDefaults.Address2ServiceAttribute, null, CreateAttribute.TypeEnum.Text),
-                    (CategoryEnum.Normal, SendInBlueDefaults.ZipCodeServiceAttribute, null, CreateAttribute.TypeEnum.Text),
-                    (CategoryEnum.Normal, SendInBlueDefaults.CityServiceAttribute, null, CreateAttribute.TypeEnum.Text),
-                    (CategoryEnum.Normal, SendInBlueDefaults.CountyServiceAttribute, null, CreateAttribute.TypeEnum.Text),
-                    (CategoryEnum.Normal, SendInBlueDefaults.StateServiceAttribute, null, CreateAttribute.TypeEnum.Text),
-                    (CategoryEnum.Normal, SendInBlueDefaults.FaxServiceAttribute, null, CreateAttribute.TypeEnum.Text),
-                    (CategoryEnum.Transactional, SendInBlueDefaults.OrderIdServiceAttribute, null, CreateAttribute.TypeEnum.Id),
-                    (CategoryEnum.Transactional, SendInBlueDefaults.OrderDateServiceAttribute, null, CreateAttribute.TypeEnum.Text),
-                    (CategoryEnum.Transactional, SendInBlueDefaults.OrderTotalServiceAttribute, null, CreateAttribute.TypeEnum.Text),
-                    (CategoryEnum.Calculated, SendInBlueDefaults.OrderTotalSumServiceAttribute, $"SUM[{SendInBlueDefaults.OrderTotalServiceAttribute}]", null),
-                    (CategoryEnum.Calculated, SendInBlueDefaults.OrderTotalMonthSumServiceAttribute, $"SUM[{SendInBlueDefaults.OrderTotalServiceAttribute},{SendInBlueDefaults.OrderDateServiceAttribute},>,NOW(-30)]", null),
-                    (CategoryEnum.Calculated, SendInBlueDefaults.OrderCountServiceAttribute, $"COUNT[{SendInBlueDefaults.OrderIdServiceAttribute}]", null),
-                    (CategoryEnum.Global, SendInBlueDefaults.AllOrderTotalSumServiceAttribute, $"SUM[{SendInBlueDefaults.OrderTotalSumServiceAttribute}]", null),
-                    (CategoryEnum.Global, SendInBlueDefaults.AllOrderTotalMonthSumServiceAttribute, $"SUM[{SendInBlueDefaults.OrderTotalMonthSumServiceAttribute}]", null),
-                    (CategoryEnum.Global, SendInBlueDefaults.AllOrderCountServiceAttribute, $"SUM[{SendInBlueDefaults.OrderCountServiceAttribute}]", null)
+                    (CategoryEnum.Normal, SendinBlueDefaults.UsernameServiceAttribute, null, CreateAttribute.TypeEnum.Text),
+                    (CategoryEnum.Normal, SendinBlueDefaults.PhoneServiceAttribute, null, CreateAttribute.TypeEnum.Text),
+                    (CategoryEnum.Normal, SendinBlueDefaults.CountryServiceAttribute, null, CreateAttribute.TypeEnum.Text),
+                    (CategoryEnum.Normal, SendinBlueDefaults.StoreIdServiceAttribute, null, CreateAttribute.TypeEnum.Text),
+                    (CategoryEnum.Normal, SendinBlueDefaults.GenderServiceAttribute, null, CreateAttribute.TypeEnum.Text),
+                    (CategoryEnum.Normal, SendinBlueDefaults.DateOfBirthServiceAttribute, null, CreateAttribute.TypeEnum.Text),
+                    (CategoryEnum.Normal, SendinBlueDefaults.CompanyServiceAttribute, null, CreateAttribute.TypeEnum.Text),
+                    (CategoryEnum.Normal, SendinBlueDefaults.Address1ServiceAttribute, null, CreateAttribute.TypeEnum.Text),
+                    (CategoryEnum.Normal, SendinBlueDefaults.Address2ServiceAttribute, null, CreateAttribute.TypeEnum.Text),
+                    (CategoryEnum.Normal, SendinBlueDefaults.ZipCodeServiceAttribute, null, CreateAttribute.TypeEnum.Text),
+                    (CategoryEnum.Normal, SendinBlueDefaults.CityServiceAttribute, null, CreateAttribute.TypeEnum.Text),
+                    (CategoryEnum.Normal, SendinBlueDefaults.CountyServiceAttribute, null, CreateAttribute.TypeEnum.Text),
+                    (CategoryEnum.Normal, SendinBlueDefaults.StateServiceAttribute, null, CreateAttribute.TypeEnum.Text),
+                    (CategoryEnum.Normal, SendinBlueDefaults.FaxServiceAttribute, null, CreateAttribute.TypeEnum.Text),
+                    (CategoryEnum.Transactional, SendinBlueDefaults.OrderIdServiceAttribute, null, CreateAttribute.TypeEnum.Id),
+                    (CategoryEnum.Transactional, SendinBlueDefaults.OrderDateServiceAttribute, null, CreateAttribute.TypeEnum.Text),
+                    (CategoryEnum.Transactional, SendinBlueDefaults.OrderTotalServiceAttribute, null, CreateAttribute.TypeEnum.Text),
+                    (CategoryEnum.Calculated, SendinBlueDefaults.OrderTotalSumServiceAttribute, $"SUM[{SendinBlueDefaults.OrderTotalServiceAttribute}]", null),
+                    (CategoryEnum.Calculated, SendinBlueDefaults.OrderTotalMonthSumServiceAttribute, $"SUM[{SendinBlueDefaults.OrderTotalServiceAttribute},{SendinBlueDefaults.OrderDateServiceAttribute},>,NOW(-30)]", null),
+                    (CategoryEnum.Calculated, SendinBlueDefaults.OrderCountServiceAttribute, $"COUNT[{SendinBlueDefaults.OrderIdServiceAttribute}]", null),
+                    (CategoryEnum.Global, SendinBlueDefaults.AllOrderTotalSumServiceAttribute, $"SUM[{SendinBlueDefaults.OrderTotalSumServiceAttribute}]", null),
+                    (CategoryEnum.Global, SendinBlueDefaults.AllOrderTotalMonthSumServiceAttribute, $"SUM[{SendinBlueDefaults.OrderTotalMonthSumServiceAttribute}]", null),
+                    (CategoryEnum.Global, SendinBlueDefaults.AllOrderCountServiceAttribute, $"SUM[{SendinBlueDefaults.OrderCountServiceAttribute}]", null)
                 };
 
                 //create attributes that are not already on account
@@ -986,7 +986,7 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
             catch (Exception exception)
             {
                 //log full error
-                _logger.Error($"SendInBlue error: {exception.Message}.", exception, _workContext.CurrentCustomer);
+                _logger.Error($"SendinBlue error: {exception.Message}.", exception, _workContext.CurrentCustomer);
                 return exception.Message;
             }
         }
@@ -1028,7 +1028,7 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
             catch (Exception exception)
             {
                 //log full error
-                _logger.Error($"SendInBlue error: {exception.Message}.", exception, _workContext.CurrentCustomer);
+                _logger.Error($"SendinBlue error: {exception.Message}.", exception, _workContext.CurrentCustomer);
                 return exception.Message;
             }
         }
@@ -1055,7 +1055,7 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
             catch (Exception exception)
             {
                 //log full error
-                _logger.Error($"SendInBlue error: {exception.Message}.", exception, _workContext.CurrentCustomer);
+                _logger.Error($"SendinBlue error: {exception.Message}.", exception, _workContext.CurrentCustomer);
                 return (false, exception.Message);
             }
         }
@@ -1109,7 +1109,7 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
             catch (Exception exception)
             {
                 //log full error
-                _logger.Error($"SendInBlue error: {exception.Message}.", exception, _workContext.CurrentCustomer);
+                _logger.Error($"SendinBlue error: {exception.Message}.", exception, _workContext.CurrentCustomer);
                 return (0, exception.Message);
             }
         }
@@ -1155,13 +1155,13 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
             catch (Exception exception)
             {
                 //log full error
-                _logger.Error($"SendInBlue error: {exception.Message}.", exception, _workContext.CurrentCustomer);
+                _logger.Error($"SendinBlue error: {exception.Message}.", exception, _workContext.CurrentCustomer);
                 return 0;
             }
         }
 
         /// <summary>
-        /// Convert SendInBlue email template to queued email
+        /// Convert SendinBlue email template to queued email
         /// </summary>
         /// <param name="templateId">Email template identifier</param>
         /// <returns>Queued email</returns>
@@ -1196,7 +1196,7 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
             catch (Exception exception)
             {
                 //log full error
-                _logger.Error($"SendInBlue email sending error: {exception.Message}.", exception, _workContext.CurrentCustomer);
+                _logger.Error($"SendinBlue email sending error: {exception.Message}.", exception, _workContext.CurrentCustomer);
                 return null;
             }
         }
@@ -1214,7 +1214,7 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
         public void SendSMS(string to, string from, string text)
         {
             //whether SMS notifications enabled
-            var sendInBlueSettings = _settingService.LoadSetting<SendInBlueSettings>();
+            var sendInBlueSettings = _settingService.LoadSetting<SendinBlueSettings>();
             if (!sendInBlueSettings.UseSmsNotifications)
                 return;
 
@@ -1232,12 +1232,12 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
 
                 //send SMS
                 var sms = client.SendTransacSms(transactionalSms);
-                _logger.Information($"SendInBlue SMS sent: {sms?.Reference ?? $"credits remaining {sms?.RemainingCredits?.ToString()}"}");
+                _logger.Information($"SendinBlue SMS sent: {sms?.Reference ?? $"credits remaining {sms?.RemainingCredits?.ToString()}"}");
             }
             catch (Exception exception)
             {
                 //log full error
-                _logger.Error($"SendInBlue SMS sending error: {exception.Message}.", exception, _workContext.CurrentCustomer);
+                _logger.Error($"SendinBlue SMS sending error: {exception.Message}.", exception, _workContext.CurrentCustomer);
             }
         }
 
@@ -1268,7 +1268,7 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
             catch (Exception exception)
             {
                 //log full error
-                _logger.Error($"SendInBlue SMS sending error: {exception.Message}.", exception, _workContext.CurrentCustomer);
+                _logger.Error($"SendinBlue SMS sending error: {exception.Message}.", exception, _workContext.CurrentCustomer);
                 return exception.Message;
             }
 

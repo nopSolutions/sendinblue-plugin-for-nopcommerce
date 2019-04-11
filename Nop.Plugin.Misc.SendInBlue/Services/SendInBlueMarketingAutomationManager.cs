@@ -21,12 +21,12 @@ using SendinBlueMarketingAutomation.Api;
 using SendinBlueMarketingAutomation.Client;
 using SendinBlueMarketingAutomation.Model;
 
-namespace Nop.Plugin.Misc.SendInBlue.Services
+namespace Nop.Plugin.Misc.SendinBlue.Services
 {
     /// <summary>
-    /// Represents SendInBlue marketing automation manager
+    /// Represents SendinBlue marketing automation manager
     /// </summary>
-    public class SendInBlueMarketingAutomationManager
+    public class SendinBlueMarketingAutomationManager
     {
         #region Fields
 
@@ -45,13 +45,13 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
         private readonly IUrlRecordService _urlRecordService;
         private readonly IWebHelper _webHelper;
         private readonly IWorkContext _workContext;
-        private readonly SendInBlueSettings _sendInBlueSettings;
+        private readonly SendinBlueSettings _sendInBlueSettings;
 
         #endregion
 
         #region Ctor
 
-        public SendInBlueMarketingAutomationManager(CurrencySettings currencySettings,
+        public SendinBlueMarketingAutomationManager(CurrencySettings currencySettings,
             IActionContextAccessor actionContextAccessor,
             ICurrencyService currencyService,
             IGenericAttributeService genericAttributeService,
@@ -66,7 +66,7 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
             IUrlRecordService urlRecordService,
             IWebHelper webHelper,
             IWorkContext workContext,
-            SendInBlueSettings sendInBlueSettings)
+            SendinBlueSettings sendInBlueSettings)
         {
             _currencySettings = currencySettings;
             _actionContextAccessor = actionContextAccessor;
@@ -102,8 +102,8 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
 
             var apiConfiguration = new Configuration()
             {
-                MaKey = new Dictionary<string, string> { [SendInBlueDefaults.MarketingAutomationKeyHeader] = _sendInBlueSettings.MarketingAutomationKey },
-                UserAgent = SendInBlueDefaults.UserAgent
+                MaKey = new Dictionary<string, string> { [SendinBlueDefaults.MarketingAutomationKeyHeader] = _sendInBlueSettings.MarketingAutomationKey },
+                UserAgent = SendinBlueDefaults.UserAgent
             };
 
             return new MarketingAutomationApi(apiConfiguration);
@@ -132,7 +132,7 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
                 client.Identify(new Identify(cartItem.Customer.Email));
 
                 //get shopping cart GUID
-                var shoppingCartGuid = _genericAttributeService.GetAttribute<Guid?>(cartItem.Customer, SendInBlueDefaults.ShoppingCartGuidAttribute);
+                var shoppingCartGuid = _genericAttributeService.GetAttribute<Guid?>(cartItem.Customer, SendinBlueDefaults.ShoppingCartGuidAttribute);
 
                 //create track event object
                 var trackEvent = new TrackEvent(cartItem.Customer.Email, string.Empty);
@@ -212,14 +212,14 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
                         //otherwise cart is updated
                         shoppingCartGuid = shoppingCartGuid ?? Guid.NewGuid();
                     }
-                    trackEvent.EventName = SendInBlueDefaults.CartUpdatedEventName;
+                    trackEvent.EventName = SendinBlueDefaults.CartUpdatedEventName;
                     trackEvent.EventData = new { id = $"cart:{shoppingCartGuid}", data = cartData };
                 }
                 else
                 {
                     //there are no items in the cart, so the cart is deleted
                     shoppingCartGuid = shoppingCartGuid ?? Guid.NewGuid();
-                    trackEvent.EventName = SendInBlueDefaults.CartDeletedEventName;
+                    trackEvent.EventName = SendinBlueDefaults.CartDeletedEventName;
                     trackEvent.EventData = new { id = $"cart:{shoppingCartGuid}" };
                 }
 
@@ -227,12 +227,12 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
                 client.TrackEvent(trackEvent);
 
                 //update GUID for the current customer's shopping cart
-                _genericAttributeService.SaveAttribute(cartItem.Customer, SendInBlueDefaults.ShoppingCartGuidAttribute, shoppingCartGuid);
+                _genericAttributeService.SaveAttribute(cartItem.Customer, SendinBlueDefaults.ShoppingCartGuidAttribute, shoppingCartGuid);
             }
             catch (Exception exception)
             {
                 //log full error
-                _logger.Error($"SendInBlue Marketing Automation error: {exception.Message}.", exception, cartItem.Customer);
+                _logger.Error($"SendinBlue Marketing Automation error: {exception.Message}.", exception, cartItem.Customer);
             }
         }
 
@@ -341,22 +341,22 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
 
                 //get shopping cart GUID
                 var shoppingCartGuid = _genericAttributeService.GetAttribute<Guid?>(order,
-                    SendInBlueDefaults.ShoppingCartGuidAttribute) ?? Guid.NewGuid();
+                    SendinBlueDefaults.ShoppingCartGuidAttribute) ?? Guid.NewGuid();
 
                 //create track event object
-                var trackEvent = new TrackEvent(order.Customer.Email, SendInBlueDefaults.OrderCompletedEventName,
+                var trackEvent = new TrackEvent(order.Customer.Email, SendinBlueDefaults.OrderCompletedEventName,
                     eventData: new { id = $"cart:{shoppingCartGuid}", data = cartData });
 
                 //track event
                 client.TrackEvent(trackEvent);
 
                 //update GUID for the current customer's shopping cart
-                _genericAttributeService.SaveAttribute<Guid?>(order, SendInBlueDefaults.ShoppingCartGuidAttribute, null);
+                _genericAttributeService.SaveAttribute<Guid?>(order, SendinBlueDefaults.ShoppingCartGuidAttribute, null);
             }
             catch (Exception exception)
             {
                 //log full error
-                _logger.Error($"SendInBlue Marketing Automation error: {exception.Message}.", exception, order.Customer);
+                _logger.Error($"SendinBlue Marketing Automation error: {exception.Message}.", exception, order.Customer);
             }
         }
 
@@ -371,8 +371,8 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
                 return;
 
             //copy shopping cart GUID to order
-            var shoppingCartGuid = _genericAttributeService.GetAttribute<Guid?>(order.Customer, SendInBlueDefaults.ShoppingCartGuidAttribute);
-            _genericAttributeService.SaveAttribute(order, SendInBlueDefaults.ShoppingCartGuidAttribute, shoppingCartGuid);
+            var shoppingCartGuid = _genericAttributeService.GetAttribute<Guid?>(order.Customer, SendinBlueDefaults.ShoppingCartGuidAttribute);
+            _genericAttributeService.SaveAttribute(order, SendinBlueDefaults.ShoppingCartGuidAttribute, shoppingCartGuid);
         }
 
         #endregion

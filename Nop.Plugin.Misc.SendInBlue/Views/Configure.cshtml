@@ -1,12 +1,13 @@
-﻿@model Nop.Plugin.Misc.SendInBlue.Models.ConfigurationModel
+﻿@model Nop.Plugin.Misc.SendinBlue.Models.ConfigurationModel
 
 @{
     Layout = "_ConfigurePlugin";
+    Html.AddCssFileParts("~/Plugins/Misc.SendinBlue/Content/styles.css", excludeFromBundle: true);
 }
 
 @await Component.InvokeAsync("StoreScopeConfiguration")
 
-<form asp-controller="SendInBlue" asp-action="Configure" method="post">
+<form asp-controller="SendinBlue" asp-action="Configure" method="post">
     <script>
         $(document).ready(function () {
             bindBootstrapTabSelectEvent('sendinblue-configure');
@@ -14,21 +15,21 @@
     </script>
 
     <nop-tabs id="sendinblue-configure">
-        <nop-tab asp-name="tab-general" asp-title="@T("Plugins.Misc.SendInBlue.General")" asp-default="true">
+        <nop-tab asp-name="tab-general" asp-title="@T("Plugins.Misc.SendinBlue.General")" asp-default="true">
             <div class="panel-group">
                 <div class="panel panel-default">
                     <div class="panel-body">
-                        <div class="form-group">
-                            <div class="col-md-3">
-                                <nop-label asp-for="ApiKey" />
-                            </div>
-                            <div class="col-md-9">
-                                <nop-editor asp-for="ApiKey" />
-                                <span asp-validation-for="ApiKey"></span>
-                            </div>
-                        </div>
                         @if (!string.IsNullOrEmpty(Model.AccountInfo))
                         {
+                            <div class="form-group">
+                                <div class="col-md-3">
+                                    <nop-label asp-for="ApiKey" />
+                                </div>
+                                <div class="col-md-9">
+                                    <nop-editor asp-for="ApiKey" />
+                                    <span asp-validation-for="ApiKey"></span>
+                                </div>
+                            </div>
                             <div class="form-group">
                                 <div class="col-md-3">
                                     <nop-label asp-for="AccountInfo" />
@@ -37,19 +38,96 @@
                                     @Html.Raw(Model.AccountInfo)
                                 </div>
                             </div>
-                        }
-                        <div class="form-group">
-                            <div class="col-md-9 col-md-offset-3">
-                                <input type="submit" name="save" class="btn btn-primary" value="@T("Admin.Common.Save")" />
+                            <div class="form-group">
+                                <div class="col-md-9 col-md-offset-3">
+                                    <input type="submit" name="save" class="btn btn-primary" value="@T("Admin.Common.Save")" />
+                                </div>
                             </div>
-                        </div>
+                        }
+                        else
+                        {
+                            <div class="custombody">
+                                <div class="form-group">
+                                    <div class="logo">
+                                        <img src="@Url.Content("~/Plugins/Misc.SendinBlue/logo.jpg")" alt="" />
+                                        <i class="sib-logo-icon"></i> <span class="t-logo-text">sendinblue</span>
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <h2>Step 1. Create a SendinBlue account</h2>
+                                    <p>
+                                        Drive more sales with all-in-one marketing software platform.
+                                    </p>
+                                </div>
+                                <div class="form-group">
+                                    <ul class="list-unstyled">
+                                        <li>
+                                            <i class="fa fa-check"></i><b>Design</b> clean and professional newsletters
+                                        </li>
+                                        <li>
+                                            <i class="fa fa-check"></i>Buid and <b>target</b> your audience
+                                        </li>
+                                        <li>
+                                            <i class="fa fa-check"></i><b>Automate</b> your marketing (e.g. abandoned cart recovery)
+                                        </li>
+                                    </ul>
+                                </div>
+                                <div class="form-group">
+                                    <div>
+                                        <a href="https://app.sendinblue.com/account/login/?utm_source=nopcommerce_plugin&utm_medium=plugin&utm_campaign=module_link" class="btn btn-primary" target="_blank">Create Free Account</a>
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <h2>Step 2. Connect your store to SendinBlue</h2>
+                                    <p>Copy your API v3 key from your SendinBlue account on <a href="https://account.sendinblue.com/advanced/api/?utm_source=nopcommerce_plugin&utm_medium=plugin&utm_campaign=module_link" target="_blank">SMTP & API</a> page, then paste it in the field below and save.</p>
+                                    <div class="apikey">
+                                        <input class="form-control text-box single-line" id="ApiKey" name="ApiKey" type="text" value="" placeholder="xkeysib-xxxxxxxxxxx">
+                                        <span asp-validation-for="ApiKey"></span>
+                                    </div>
+                                    
+                                </div>
+                                <div class="form-group">
+                                    <input type="submit" name="save" class="btn btn-primary" value="@T("Admin.Common.Save")" />
+                                </div>
+                                <div class="form-group">
+                                    <h2>Need help?</h2>
+                                    <p>Take a look at our tutorials:</p>
+                                    <ul class="list">
+                                        <li>
+                                            <a href="https://help.sendinblue.com/hc/en-us/articles/360004172879/?utm_source=nopcommerce_plugin&utm_medium=plugin&utm_campaign=module_link" target="_blank">NopCommerce - 1. Set up the plugin</a>
+                                        </li>
+                                        <li>
+                                            <a href="https://help.sendinblue.com/hc/en-us/articles/360004172899/?utm_source=nopcommerce_plugin&utm_medium=plugin&utm_campaign=module_link" target="_blank">NopCommerce - 2. Recover abandoned carts</a>
+                                        </li>
+                                        <li>
+                                            <a href="https://help.sendinblue.com/hc/en-us/articles/360004172939/?utm_source=nopcommerce_plugin&utm_medium=plugin&utm_campaign=module_link" target="_blank">NopCommerce - 3. Send an order confirmation email</a>
+                                        </li>
+                                    </ul>
+                                </div>
+                                <br/>
+                                <div class="form-group">
+                                    <p><b><i>Don’t see your question answered?</i></b></p>
+                                    <ul class="list">
+                                        <li>
+                                            <i>Visit <a href="https://www.nopcommerce.com/boards/" target="_blank">NopCommerce forums</a>. They are free and mostly provided by NopCommerce community (sometimes by NopCommerce team).</i>
+                                        </li>
+                                        <li>
+                                            <i><a href="https://www.nopcommerce.com/p/541/nopcommerce-premium-support-services.aspx" target="_blank">NopCommerce premium support services</a>. Paid, fast and provided by NopCommerce team.</i>
+                                        </li>
+                                        <li>
+                                            <i>Post the issue on NopCommerce <a href="https://github.com/nopSolutions/sendinblue-plugin-for-nopcommerce/issues" target="_blank">plugin repository</a>.</i>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>                                
+                        }
                     </div>
                 </div>
             </div>
         </nop-tab>
         @if (!string.IsNullOrEmpty(Model.ApiKey))
         {
-            <nop-tab asp-name="tab-synchronization" asp-title="@T("Plugins.Misc.SendInBlue.Synchronization")">
+            <nop-tab asp-name="tab-synchronization" asp-title="@T("Plugins.Misc.SendinBlue.Synchronization")">
                 <script>
                     $(document).ready(function () {
                         $("#progressBar").kendoProgressBar({
@@ -66,7 +144,7 @@
 
                     function refresh(){
                         setTimeout(function(){
-                            $.get('@(Url.Action("GetSynchronizationInfo", "SendInBlue"))', function(data) {
+                            $.get('@(Url.Action("GetSynchronizationInfo", "SendinBlue"))', function(data) {
                                 if (!data) {
                                     refresh();
                                 }
@@ -84,10 +162,15 @@
                     <div class="panel panel-default">
                         <div class="panel-body">
                             <p>
-                                After the initial sync, your NopCommerce contacts will automatically be added to your SendinBlue list(s).<br />
-                                The task is scheduled to run every 6000 seconds. To set the sync frequency, go to 
-                                <a href="@Url.Content("~/Admin/ScheduleTask/List/")">System > Schedule tasks.</a>
+                                From the dropdown list below, select the SendinBlue list where your NopCommerce newsletter subscribers and their data will be added.<br />
+                                After the initial sync, a task is scheduled to run every 6000 seconds to automatically add your new subscribers to your SendinBlue list.<br />
+                                To change the sync frequency, go to <a href="@Url.Content("~/Admin/ScheduleTask/List/")">System > Schedule tasks.</a>
                             </p>
+                            <div class="form-group">
+                                <div class="col-md-9 col-md-offset-3">
+                                    <a href="https://my.sendinblue.com/lists/?utm_source=nopcommerce_plugin&utm_medium=plugin&utm_campaign=module_link" class="btn btn-primary" target="_blank">Create a list</a>
+                                </div>
+                            </div>
                             <div class="form-group">
                                 <div class="col-md-3">
                                     <nop-override-store-checkbox asp-for="ListId_OverrideForStore" asp-input="ListId" asp-store-scope="@Model.ActiveStoreScopeConfiguration" />
@@ -107,27 +190,30 @@
                     </div>
                     <div class="panel panel-default">
                         <div class="panel-heading">
-                            @T("Plugins.Misc.SendInBlue.ManualSync")
+                            @T("Plugins.Misc.SendinBlue.ManualSync")
                         </div>
                         <div class="panel-body">
+                            <p>
+                                To run the sync right away, click on the "Sync now" button.
+                            </p>
                             <div id="synchronizationInfo" style="white-space: pre-line"></div>
                             <div id="progressBar"></div>
                         </div>
                         <div class="panel-footer">
                             <button type="submit" name="sync" class="btn bg-primary">
-                                @T("Plugins.Misc.SendInBlue.ManualSync")
+                                @T("Plugins.Misc.SendinBlue.SyncNow")
                             </button>
                         </div>
                     </div>
                 </div>
             </nop-tab>
-            <nop-tab asp-name="tab-transactional" asp-title="@T("Plugins.Misc.SendInBlue.Transactional")">
+            <nop-tab asp-name="tab-transactional" asp-title="@T("Plugins.Misc.SendinBlue.Transactional")">
                 <div class="panel-group">
                     <div class="panel panel-default">
                         <div class="panel-body">
                             <p>
-                                SMTP is an standard email used everywhere. If you are configuring an email client or a Content Management System you will probably need your SMTP access.<br />
-                                SMTP password you can get on the link:  <a href="https://app-smtp.sendinblue.com/parameters?utm_source=nopcommerce_plugin&utm_medium=plugin&utm_campaign=module_link" target="_blank">get Your SMTP key</a><br />
+                                SendinBlue SMTP is the transactional email service of SendinBlue. When it is enabled, all transactional emails (e.g. account creation emails, order confirmation emails, recovery password emails, etc) of your store will be sent from your SendinBlue account.<br />
+                                Copy your SMTP key from your SendinBlue account on <a href="https://account.sendinblue.com/advanced/api/?utm_source=nopcommerce_plugin&utm_medium=plugin&utm_campaign=module_link" target="_blank">SMTP & API</a> page > SMTP tab, then paste it in the field below and save.
                             </p>
                             <div class="form-group">
                                 <div class="col-md-3">
@@ -179,12 +265,12 @@
                                                 type: "json",
                                                 transport: {
                                                     read: {
-                                                        url: "@Html.Raw(Url.Action("MessageList", "SendInBlue"))",
+                                                        url: "@Html.Raw(Url.Action("MessageList", "SendinBlue"))",
                                                         type: "POST",
                                                         dataType: "json"
                                                     },
                                                     update: {
-                                                        url:"@Html.Raw(Url.Action("MessageUpdate", "SendInBlue"))",
+                                                        url:"@Html.Raw(Url.Action("MessageUpdate", "SendinBlue"))",
                                                         type: "POST",
                                                         dataType: "json"
                                                     }
@@ -245,7 +331,7 @@
                                                 title: "@T("Admin.ContentManagement.MessageTemplates.Fields.LimitedToStores")"
                                             }, {
                                                 field: "TemplateTypeId",
-                                                title: "@T("Plugins.Misc.SendInBlue.TemplateType")",
+                                                title: "@T("Plugins.Misc.SendinBlue.TemplateType")",
                                                 width: 300,
                                                 template: "#=TemplateType#",
                                                 editor: function storeDropDownEditor(container, options) {
@@ -254,16 +340,16 @@
                                                         .kendoDropDownList({
                                                             autoBind: false,
                                                             dataSource: [
-                                                                { Id : 0, Name : "@T("Plugins.Misc.SendInBlue.StandardTemplate")" },
-                                                                { Id : 1, Name : "@T("Plugins.Misc.SendInBlue.SendInBlueTemplate")" }
+                                                                { Id : 0, Name : "@T("Plugins.Misc.SendinBlue.StandardTemplate")" },
+                                                                { Id : 1, Name : "@T("Plugins.Misc.SendinBlue.SendinBlueTemplate")" }
                                                             ]
                                                         });
                                                 }
                                             }, {
                                                 field: "Id",
-                                                title: "@T("Plugins.Misc.SendInBlue.EditTemplate")",
+                                                title: "@T("Plugins.Misc.SendinBlue.EditTemplate")",
                                                 width: 150,
-                                                    template: '<a href="#=EditLink#" target="_blank">@T("Plugins.Misc.SendInBlue.EditTemplate")</a>'
+                                                    template: '<a href="#=EditLink#" target="_blank">@T("Plugins.Misc.SendinBlue.EditTemplate")</a>'
                                             }, {
                                                 command: [{
                                                     name: "edit",
@@ -284,15 +370,12 @@
                     }
                 </div>
             </nop-tab>
-            <nop-tab asp-name="tab-sms" asp-title="@T("Plugins.Misc.SendInBlue.SMS")">
+            <nop-tab asp-name="tab-sms" asp-title="@T("Plugins.Misc.SendinBlue.SMS")">
                 <div class="panel-group">
                     <div class="panel panel-default">
                         <div class="panel-body">
                             <p>
-                                The cost to send one SMS varies by country. With SendinBlue, you can send text messages to recipients in over 100 countries using SMS credit system.<br />
-                                To send one SMS in a country, you need to use multiple credits and the exact number depends on the country.<br />
-
-                                You can estimate the number of SMS credits you need by using <a href="https://www.sendinblue.com/pricing?utm_source=nopcommerce_plugin&utm_medium=plugin&utm_campaign=module_link" target="_blank">calculator</a><br />
+                                You can send personalized SMS notifications to your customers or the store owner. Simply make sure that you have SMS credits (estimate how many SMS credits you need with this <a href="https://www.sendinblue.com/pricing?utm_source=nopcommerce_plugin&utm_medium=plugin&utm_campaign=module_link" target="_blank">calculator</a> - the cost of an SMS depends on the recipient’s country) and that sending transactional SMS is enabled on your SendinBlue account.
                             </p>
                             <div class="form-group">
                                 <div class="col-md-3">
@@ -365,23 +448,23 @@
                                                 type: "json",
                                                 transport: {
                                                     read: {
-                                                        url: "@Html.Raw(Url.Action("SMSList", "SendInBlue"))",
+                                                        url: "@Html.Raw(Url.Action("SMSList", "SendinBlue"))",
                                                         type: "POST",
                                                         dataType: "json"
                                                     },
                                                     create: {
-                                                        url: "@Html.Raw(Url.Action("SMSAdd", "SendInBlue"))",
+                                                        url: "@Html.Raw(Url.Action("SMSAdd", "SendinBlue"))",
                                                         type: "POST",
                                                         dataType: "json",
                                                         data: addAntiForgeryToken
                                                     },
                                                     update: {
-                                                        url:"@Html.Raw(Url.Action("SMSUpdate", "SendInBlue"))",
+                                                        url:"@Html.Raw(Url.Action("SMSUpdate", "SendinBlue"))",
                                                         type: "POST",
                                                         dataType: "json"
                                                     },
                                                     destroy: {
-                                                        url: "@Html.Raw(Url.Action("SMSDelete", "SendInBlue"))",
+                                                        url: "@Html.Raw(Url.Action("SMSDelete", "SendinBlue"))",
                                                         type: "POST",
                                                         dataType: "json",
                                                         data: addAntiForgeryToken
@@ -422,7 +505,7 @@
                                                 previousNext: false,
                                                 info: false
                                             },
-                                            toolbar: [{ name: "create", text: "@T("Plugins.Misc.SendInBlue.AddNewSMSNotification")" }],
+                                            toolbar: [{ name: "create", text: "@T("Plugins.Misc.SendinBlue.AddNewSMSNotification")" }],
                                             edit: function(e) {
                                                 if (e.model.isNew()) {
                                                     if (messageTemplates.length > 0) {
@@ -450,7 +533,7 @@
                                                 }
                                             }, {
                                                 field: "PhoneTypeId",
-                                                title: "@T("Plugins.Misc.SendInBlue.PhoneType")",
+                                                title: "@T("Plugins.Misc.SendinBlue.PhoneType")",
                                                 width: 200,
                                                 template: "#=PhoneType#",
                                                 editor: function phoneTypeDropDownEditor(container, options) {
@@ -459,15 +542,15 @@
                                                         .kendoDropDownList({
                                                             autoBind: false,
                                                             dataSource: [
-                                                                { Id : 0, Name : "@T("Plugins.Misc.SendInBlue.MyPhone")" },
-                                                                { Id : 1, Name : "@T("Plugins.Misc.SendInBlue.CustomerPhone")" },
-                                                                { Id : 2, Name : "@T("Plugins.Misc.SendInBlue.BillingAddressPhone")" }
+                                                                { Id : 0, Name : "@T("Plugins.Misc.SendinBlue.MyPhone")" },
+                                                                { Id : 1, Name : "@T("Plugins.Misc.SendinBlue.CustomerPhone")" },
+                                                                { Id : 2, Name : "@T("Plugins.Misc.SendinBlue.BillingAddressPhone")" }
                                                             ]
                                                         });
                                                 }
                                             }, {
                                                 field: "Text",
-                                                title: "@T("Plugins.Misc.SendInBlue.SMSText")",
+                                                title: "@T("Plugins.Misc.SendinBlue.SMSText")",
                                                 width: 500,
                                                 editor: function textareaEditor(container, options) {
                                                     $('<textarea data-bind="value:Text" style="width: ' + container.width() + 'px; height: ' + (container.height() * 3) + 'px" />')
@@ -514,9 +597,12 @@
 
                     <div class="panel panel-default">
                         <div class="panel-heading">
-                            @T("Plugins.Misc.SendInBlue.SMS.Campaigns")
+                            @T("Plugins.Misc.SendinBlue.SMS.Campaigns")
                         </div>
                         <div class="panel-body">
+                            <p>
+                                Send a SMS campaign to a SendinBlue list.
+                            </p>
                             <div class="form-group">
                                 <div class="col-md-3">
                                     <nop-label asp-for="CampaignListId" />
@@ -546,14 +632,14 @@
                             </div>
                             <div class="form-group">
                                 <div class="col-md-9 col-md-offset-3">
-                                    <input type="submit" name="submitCampaign" class="btn btn-primary" value="@T("Plugins.Misc.SendInBlue.SMS.Campaigns.Submit")" />
+                                    <input type="submit" name="submitCampaign" class="btn btn-primary" value="@T("Plugins.Misc.SendinBlue.SMS.Campaigns.Submit")" />
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
             </nop-tab>
-            <nop-tab asp-name="tab-ma" asp-title="@T("Plugins.Misc.SendInBlue.MarketingAutomation")">
+            <nop-tab asp-name="tab-ma" asp-title="@T("Plugins.Misc.SendinBlue.MarketingAutomation")">
                 <div class="panel-group">
                     <div class="panel panel-default">
                         <div class="panel-body">
@@ -566,8 +652,8 @@
                             else
                             {
                                 <p>
-                                    In order for the tracking script to work, make sure that the SendInBlue widget is activated on the page
-                                    <a href="@Url.Content("~/Admin/Widget/List/")">Widgets.</a>
+                                    Automate your marketing - send a series of emails or SMS once a visitor has signed up, a prospect has abandoned their cart, a customer has made a purchase, etc. The plugin will automatically track the activity of shoppers for you to set up workflows to recover lost sales.<br />
+                                    In order for the tracking script to work, make sure that the SendinBlue widget is activated on the page <a href="@Url.Content("~/Admin/Widget/List/")">Widgets.</a>
                                 </p>
                             }
                             <div class="form-group">

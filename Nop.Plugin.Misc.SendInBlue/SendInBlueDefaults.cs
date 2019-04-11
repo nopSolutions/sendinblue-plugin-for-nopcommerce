@@ -1,16 +1,16 @@
 ﻿using Nop.Core;
 
-namespace Nop.Plugin.Misc.SendInBlue
+namespace Nop.Plugin.Misc.SendinBlue
 {
     /// <summary>
-    /// Represents constants of the SendInBlue plugin
+    /// Represents constants of the SendinBlue plugin
     /// </summary>
-    public static class SendInBlueDefaults
+    public static class SendinBlueDefaults
     {
         /// <summary>
         /// Gets a plugin system name
         /// </summary>
-        public static string SystemName => "Misc.SendInBlue";
+        public static string SystemName => "Misc.SendinBlue";
 
         /// <summary>
         /// Gets a plugin partner name
@@ -18,34 +18,34 @@ namespace Nop.Plugin.Misc.SendInBlue
         public static string PartnerName => "NOPCOMMERCE";
 
         /// <summary>
-        /// Gets a user agent used for requesting SendInBlue services
+        /// Gets a user agent used for requesting SendinBlue services
         /// </summary>
         public static string UserAgent => $"nopCommerce-{NopVersion.CurrentVersion}";
 
         /// <summary>
-        /// Gets a URL to edit message template on SendInBlue account
+        /// Gets a URL to edit message template on SendinBlue account
         /// </summary>
         public static string EditMessageTemplateUrl = "https://my.sendinblue.com/camp/template/{0}/message-setup?utm_source=nopcommerce_plugin&utm_medium=plugin&utm_campaign=module_link";
 
         /// <summary>
         /// Gets a name of the route to the import contacts callback
         /// </summary>
-        public static string ImportContactsRoute => "Plugin.Misc.SendInBlue.ImportContacts";
+        public static string ImportContactsRoute => "Plugin.Misc.SendinBlue.ImportContacts";
 
         /// <summary>
         /// Gets a name of the route to the unsubscribe contact callback
         /// </summary>
-        public static string UnsubscribeContactRoute => "Plugin.Misc.SendInBlue.Unsubscribe";
+        public static string UnsubscribeContactRoute => "Plugin.Misc.SendinBlue.Unsubscribe";
 
         /// <summary>
         /// Gets a name of the synchronization schedule task
         /// </summary>
-        public static string SynchronizationTaskName => "Synchronization (SendInBlue plugin)";
+        public static string SynchronizationTaskName => "Synchronization (SendinBlue plugin)";
 
         /// <summary>
         /// Gets a type of the synchronization schedule task
         /// </summary>
-        public static string SynchronizationTask => "Nop.Plugin.Misc.SendInBlue.Services.SynchronizationTask";
+        public static string SynchronizationTask => "Nop.Plugin.Misc.SendinBlue.Services.SynchronizationTask";
 
         /// <summary>
         /// Gets a default synchronization period in hours
@@ -265,7 +265,7 @@ namespace Nop.Plugin.Misc.SendInBlue
         /// <summary>
         /// Gets a key of the attribute to store a value indicating whether non-standard template used
         /// </summary>
-        public static string SendInBlueTemplateAttribute => "SendInBlueTemplate";
+        public static string SendinBlueTemplateAttribute => "SendinBlueTemplate";
 
         /// <summary>
         /// Gets a key of the attribute to store template identifier

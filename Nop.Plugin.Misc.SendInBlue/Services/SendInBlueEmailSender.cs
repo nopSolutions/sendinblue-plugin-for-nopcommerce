@@ -5,26 +5,26 @@ using Nop.Core.Infrastructure;
 using Nop.Services.Media;
 using Nop.Services.Messages;
 
-namespace Nop.Plugin.Misc.SendInBlue.Services
+namespace Nop.Plugin.Misc.SendinBlue.Services
 {
     /// <summary>
-    /// SendInBlue email sender
+    /// SendinBlue email sender
     /// </summary>
-    public partial class SendInBlueEmailSender : EmailSender
+    public partial class SendinBlueEmailSender : EmailSender
     {
         #region Fields
 
         private readonly IStoreContext _storeContext;
-        private readonly SendInBlueSettings _sendInBlueSettings;
+        private readonly SendinBlueSettings _sendInBlueSettings;
 
         #endregion
 
         #region Ctor
 
-        public SendInBlueEmailSender(IDownloadService downloadService,
+        public SendinBlueEmailSender(IDownloadService downloadService,
             INopFileProvider fileProvider,
             IStoreContext storeContext,
-            SendInBlueSettings sendInBlueSettings) : base(downloadService, fileProvider)
+            SendinBlueSettings sendInBlueSettings) : base(downloadService, fileProvider)
         {
             _storeContext = storeContext;
             _sendInBlueSettings = sendInBlueSettings;
@@ -63,7 +63,7 @@ namespace Nop.Plugin.Misc.SendInBlue.Services
             if (emailAccount.Id == _sendInBlueSettings.EmailAccountId)
             {
                 headers = headers ?? new Dictionary<string, string>();
-                headers.Add(SendInBlueDefaults.EmailCustomHeader, _storeContext.CurrentStore.Id.ToString());
+                headers.Add(SendinBlueDefaults.EmailCustomHeader, _storeContext.CurrentStore.Id.ToString());
             }
 
             base.SendEmail(emailAccount, subject, body, fromAddress, fromName, toAddress, toName, replyTo, replyToName, bcc, cc, attachmentFilePath, attachmentFileName, attachedDownloadId, headers);

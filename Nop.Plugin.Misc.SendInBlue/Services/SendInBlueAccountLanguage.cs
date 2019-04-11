@@ -1,9 +1,9 @@
-﻿namespace Nop.Plugin.Misc.SendInBlue.Services
+﻿namespace Nop.Plugin.Misc.SendinBlue.Services
 {
     /// <summary>
-    /// Represents language for SendInBlue account
+    /// Represents language for SendinBlue account
     /// </summary>
-    public enum SendInBlueAccountLanguage
+    public enum SendinBlueAccountLanguage
     {
         Default = 0,
         French = 1,

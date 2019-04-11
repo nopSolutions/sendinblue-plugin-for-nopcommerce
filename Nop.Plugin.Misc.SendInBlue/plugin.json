@@ -1,11 +1,11 @@
 ﻿{
   "Group": "Misc",
-  "FriendlyName": "SendInBlue",
-  "SystemName": "Misc.SendInBlue",
-  "Version": "3.03",
+  "FriendlyName": "SendinBlue",
+  "SystemName": "Misc.SendinBlue",
+  "Version": "3.04",
   "SupportedVersions": [ "4.10" ],
   "Author": "nopCommerce team",
   "DisplayOrder": 1,
-  "FileName": "Nop.Plugin.Misc.SendInBlue.dll",
+  "FileName": "Nop.Plugin.Misc.SendinBlue.dll",
   "Description": "This plugin allows to integrate with SendinBlue service"
 }

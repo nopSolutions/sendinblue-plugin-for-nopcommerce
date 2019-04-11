@@ -12,6 +12,7 @@
   </PropertyGroup>
   
   <ItemGroup>
+    <None Remove="Content\styles.css" />
     <None Remove="logo.jpg" />
     <None Remove="plugin.json" />
     <None Remove="Views\Configure.cshtml" />
@@ -20,16 +21,19 @@
   </ItemGroup>
   
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
-    <OutputPath>..\..\Presentation\Nop.Web\Plugins\Misc.SendInBlue</OutputPath>
+    <OutputPath>..\..\Presentation\Nop.Web\Plugins\Misc.SendinBlue</OutputPath>
     <OutDir>$(OutputPath)</OutDir>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
-    <OutputPath>..\..\Presentation\Nop.Web\Plugins\Misc.SendInBlue</OutputPath>
+    <OutputPath>..\..\Presentation\Nop.Web\Plugins\Misc.SendinBlue</OutputPath>
     <OutDir>$(OutputPath)</OutDir>
   </PropertyGroup>
 
   <ItemGroup>
+    <Content Include="Content\styles.css">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
     <Content Include="logo.jpg">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
@@ -55,8 +59,8 @@
     <Reference Include="SendinBlue.ClientV3.45">
       <HintPath>SendinBlue.ClientV3.45.dll</HintPath>
     </Reference>
-    <Reference Include="SendInBlueMarketingAutomation">
-      <HintPath>SendInBlueMarketingAutomation.dll</HintPath>
+    <Reference Include="SendinBlueMarketingAutomation">
+      <HintPath>SendinBlueMarketingAutomation.dll</HintPath>
     </Reference>
   </ItemGroup>
 
@@ -67,7 +71,7 @@
     <None Update="SendinBlue.ClientV3.45.dll">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
-    <None Update="SendInBlueMarketingAutomation.dll">
+    <None Update="SendinBlueMarketingAutomation.dll">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
   </ItemGroup>
