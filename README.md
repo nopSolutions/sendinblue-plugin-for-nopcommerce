@@ -9,4 +9,4 @@ Listing on nopCommerce "extensions and themes" catalog: [https://www.nopcommerce
 
 Sendinblue site: [https://www.sendinblue.com](https://app.sendinblue.com/account/register/?utm_source=nopcommerce_plugin&utm_medium=plugin&utm_campaign=partners_page)
 
-Sendinblue APIs: [https://apidocs.sendinblue.com]
+Sendinblue APIs: [https://apidocs.sendinblue.com](https://apidocs.sendinblue.com?utm_source=nopcommerce_plugin&utm_medium=plugin&utm_campaign=partners_pag)
