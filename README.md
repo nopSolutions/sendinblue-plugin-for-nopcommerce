@@ -1,12 +1,10 @@
-nopCommerce SendinBlue plugin
+nopCommerce Sendinblue plugin
 ===========
 
-nopCommerce site: [http://www.nopcommerce.com](http://www.nopcommerce.com)
+nopCommerce site: [https://www.nopcommerce.com](https://www.nopcommerce.com)
 
+Listing on nopCommerce "extensions and themes" catalog: [https://www.nopcommerce.com/sendinblue](https://www.nopcommerce.com/sendinblue)
 
-Listing on nopCommerce "extensions and themes" catalog: [http://www.nopcommerce.com/p/2285/sendinblue-email-marketing.aspx](http://www.nopcommerce.com/p/2285/sendinblue-email-marketing.aspx)
+Sendinblue site: [https://www.sendinblue.com](https://app.sendinblue.com/account/register/?utm_source=nopcommerce_plugin&utm_medium=plugin&utm_campaign=partners_page)
 
-
-SendInBlue site: [https://www.sendinblue.com]
-
-SendInBlue APIs: [https://apidocs.sendinblue.com]
+Sendinblue APIs: [https://apidocs.sendinblue.com](https://apidocs.sendinblue.com?utm_source=nopcommerce_plugin&utm_medium=plugin&utm_campaign=partners_page)
