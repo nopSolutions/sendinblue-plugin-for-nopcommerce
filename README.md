@@ -7,6 +7,6 @@ nopCommerce site: [https://www.nopcommerce.com](https://www.nopcommerce.com)
 Listing on nopCommerce "extensions and themes" catalog: [https://www.nopcommerce.com/sendinblue](https://www.nopcommerce.com/sendinblue)
 
 
-Sendinblue site: [https://www.sendinblue.com](https://app.sendinblue.com/account/register/?utm_source=nopcommerce_plugin&utm_medium=plugin&utm_campaign=partners_page)
+Sendinblue site: [https://www.sendinblue.com](https://www.sendinblue.com/?tap_a=30591-fb13f0&tap_s=840216-5153c7)
 
-Sendinblue APIs: [https://apidocs.sendinblue.com](https://apidocs.sendinblue.com?utm_source=nopcommerce_plugin&utm_medium=plugin&utm_campaign=partners_page)
+Sendinblue APIs: [https://apidocs.sendinblue.com](https://apidocs.sendinblue.com?tap_a=30591-fb13f0&tap_s=840216-5153c7)
